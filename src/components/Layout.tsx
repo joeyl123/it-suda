@@ -11,21 +11,22 @@ export default function Layout() {
     <div className="app">
       <header className="header">
         <div className="container header-inner">
-          <Link to="/" className="brand">
-            <img src="/favicon.svg" alt="" width={28} height={28} />
+          <NavLink to="/" end className="nav-link">아카이브</NavLink>
+          <Link to="/" className="brand" aria-label="IT 수다 모임 홈">
+            <img src="/favicon.svg" alt="" width={30} height={30} />
             <span>IT 수다 모임</span>
           </Link>
-          <nav className="nav">
-            <NavLink to="/" end>아카이브</NavLink>
-            <NavLink to="/about">소개</NavLink>
-          </nav>
+          <NavLink to="/about" className="nav-link">소개</NavLink>
         </div>
       </header>
-      <main className="container main">
+      <main className="main">
         <Outlet />
       </main>
       <footer className="footer">
-        <div className="container">IT 수다 모임 · 당근 소모임에서 나눈 이야기들을 기록합니다.</div>
+        <div className="container">
+          <div className="footer-mark" aria-hidden="true"><span className="l">◐</span><span className="r">◑</span></div>
+          IT 수다 모임 · 당근 소모임에서 마주 앉아 나눈 이야기들
+        </div>
       </footer>
     </div>
   )

@@ -1,5 +1,12 @@
 import { parse } from 'yaml'
 
+export interface Topic {
+  /** 1부터 시작하는 토픽 번호 (URL에 사용) */
+  index: number
+  title: string
+  body: string
+}
+
 export interface Session {
   slug: string
   title: string
@@ -10,6 +17,9 @@ export interface Session {
   location?: string
   body: string
   topics: string[]
+  /** 첫 `## ` 헤딩 이전의 본문 */
+  intro: string
+  topicList: Topic[]
 }
 
 const files = import.meta.glob('/content/sessions/*.md', {
@@ -20,12 +30,31 @@ const files = import.meta.glob('/content/sessions/*.md', {
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 
+// "## " 헤딩 하나 = 그날 나눈 토픽 하나 (= 태양계의 행성 하나)
+function splitTopics(body: string) {
+  const intro: string[] = []
+  const topics: Topic[] = []
+  let inFence = false
+  for (const line of body.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence
+    const heading = inFence ? null : line.match(/^##\s+(.+)$/)
+    if (heading) topics.push({ index: topics.length + 1, title: heading[1].trim(), body: '' })
+    else if (topics.length) topics[topics.length - 1].body += line + '\n'
+    else intro.push(line)
+  }
+  return {
+    intro: intro.join('\n').trim(),
+    topics: topics.map((t) => ({ ...t, body: t.body.trim() })),
+  }
+}
+
 function toSession(path: string, raw: string): Session {
   const slug = path.split('/').pop()!.replace(/\.md$/, '')
   const match = raw.match(FRONTMATTER)
   const meta = (match ? parse(match[1]) : {}) ?? {}
   const body = match ? match[2] : raw
   const date = meta.date instanceof Date ? meta.date.toISOString().slice(0, 10) : String(meta.date ?? '')
+  const { intro, topics: topicList } = splitTopics(body)
 
   return {
     slug,
@@ -36,8 +65,9 @@ function toSession(path: string, raw: string): Session {
     summary: meta.summary,
     location: meta.location,
     body,
-    // "## " 헤딩 = 그날 나눈 토픽 하나
-    topics: [...body.matchAll(/^##\s+(.+)$/gm)].map((m) => m[1].trim()),
+    topics: topicList.map((t) => t.title),
+    intro,
+    topicList,
   }
 }
 
@@ -70,3 +100,5 @@ export function formatDate(date: string) {
   if (Number.isNaN(d.getTime())) return date
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 }
+
+export const pad2 = (n: number) => String(n).padStart(2, '0')

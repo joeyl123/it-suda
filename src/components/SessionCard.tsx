@@ -6,8 +6,13 @@ export default function SessionCard({ session }: { session: Session }) {
     <article className="card">
       <Link to={`/sessions/${session.slug}`} className="card-link">
         <div className="card-meta">
-          {session.number !== undefined && <span className="badge">{session.number}회차</span>}
           <time>{formatDate(session.date)}</time>
+          {session.location && (
+            <>
+              <span className="dot">·</span>
+              <span>{session.location}</span>
+            </>
+          )}
         </div>
         <h2 className="card-title">{session.title}</h2>
         {session.summary && <p className="card-summary">{session.summary}</p>}
@@ -16,7 +21,7 @@ export default function SessionCard({ session }: { session: Session }) {
             {session.topics.slice(0, 4).map((t) => (
               <li key={t}>{t}</li>
             ))}
-            {session.topics.length > 4 && <li className="muted">+{session.topics.length - 4}개 더</li>}
+            {session.topics.length > 4 && <li className="more">+{session.topics.length - 4}개 더</li>}
           </ul>
         )}
       </Link>

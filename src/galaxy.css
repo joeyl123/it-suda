@@ -1,0 +1,171 @@
+/* 3D galaxy views — design.md §4-B */
+
+/* ---------- 3D stage ---------- */
+.stage { position: relative; overflow: hidden; touch-action: none; }
+.stage canvas { display: block; }
+.scene-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--ink-soft);
+}
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--rule); border-top-color: var(--violet);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.hint { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); margin: 0; }
+.stage-tag { position: absolute; left: 24px; top: 20px; margin: 0; pointer-events: none; }
+.stage-hint { position: absolute; left: 24px; bottom: 20px; pointer-events: none; }
+.biome-tag { display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--ink-soft); }
+.biome-tag .label { color: var(--glow); }
+
+/* ---------- Galaxy (home) ---------- */
+.galaxy { position: relative; }
+.stage-full { height: calc(100svh - 64px); min-height: 520px; }
+.galaxy-ui {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  padding: 32px 24px 24px;
+  pointer-events: none;
+  z-index: 30; /* 3D 라벨(zIndexRange 0–20) 위로 */
+}
+.galaxy-hero {
+  max-width: 400px;
+  pointer-events: auto;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 20px 20px 20px 4px;
+  backdrop-filter: blur(12px);
+}
+.galaxy-hero .label { margin: 0 0 8px; }
+.galaxy-hero h1 {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(32px, 4vw, 44px); line-height: 1.15; letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+.galaxy-hero .accent, .hero .accent { color: var(--apricot); }
+.galaxy-hero .hero-desc { margin: 0 0 20px; font-size: 15px; max-width: none; }
+.galaxy-hero .hero-desc b { color: var(--ink); font-weight: 600; }
+.galaxy-hero .stats { display: grid; width: 100%; margin-bottom: 16px; }
+.galaxy-hero .stats > div { padding: 8px 12px; }
+.galaxy-hero .toolbar { margin: 0; max-width: none; }
+.galaxy-hero .search input { padding: 12px 20px; font-size: 15px; text-align: left; }
+.galaxy-hero .chips { justify-content: flex-start; }
+.match-note { margin: 12px 0 0; font-family: var(--font-mono); font-size: 12px; color: var(--violet); }
+.galaxy-bottom { display: flex; align-items: center; gap: 16px; pointer-events: auto; }
+
+.view-toggle {
+  display: inline-flex; padding: 4px; gap: 4px;
+  border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--panel); backdrop-filter: blur(12px);
+}
+.view-toggle button {
+  font: 500 13px var(--font-mono);
+  color: var(--ink-soft); background: none; border: 0; cursor: pointer;
+  padding: 6px 16px; border-radius: 999px;
+}
+.view-toggle button[aria-selected='true'] { background: var(--ink); color: var(--paper); }
+.hero .view-toggle { margin-top: 8px; }
+
+@media (max-width: 719px) {
+  .stage-full { height: 60svh; min-height: 380px; }
+  .galaxy-ui { position: static; padding: 0 16px 48px; gap: 16px; margin-top: -40px; align-items: stretch; }
+  .galaxy-hero { max-width: none; position: relative; }
+  .hint { display: none; }
+}
+
+/* ---------- 3D labels (Anchor → DOM) ---------- */
+.label-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
+.label-layer > * { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: auto; will-change: transform; }
+.sys-label {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 12px;
+  font: inherit; color: var(--ink); text-align: center; white-space: nowrap;
+  background: rgba(15, 12, 24, 0.55);
+  border: 1px solid transparent; border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s, border-color 0.2s, background 0.2s;
+}
+.sys-label.is-hover { border-color: var(--corona); background: var(--panel); }
+.sys-label.is-dim { opacity: 0.25; }
+.sys-no { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--corona); }
+.sys-title { font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
+.sys-meta { font: 11px var(--font-mono); color: var(--ink-soft); }
+
+.planet-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  font: 500 13px var(--font-body); color: var(--ink); white-space: nowrap;
+  background: rgba(15, 12, 24, 0.6);
+  border: 1px solid var(--rule); border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.planet-label .planet-no {
+  font: 600 11px var(--font-mono);
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--glow); color: #0f0c18;
+}
+.planet-label.is-hover { border-color: var(--glow); background: var(--panel); }
+
+/* ---------- Split view (system / planet) ---------- */
+.split { display: grid; grid-template-columns: 1fr; }
+.split > .stage { height: 56svh; min-height: 340px; }
+.panel { padding: 32px 16px 80px; }
+@media (min-width: 960px) {
+  .split { grid-template-columns: minmax(0, 1fr) 480px; }
+  .split > .stage { position: sticky; top: 64px; height: calc(100svh - 64px); }
+  .panel {
+    padding: 40px 40px 96px;
+    border-left: 1px solid var(--rule);
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    min-height: calc(100svh - 64px);
+  }
+}
+.crumbs {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 24px;
+  font: 13px var(--font-mono); color: var(--ink-soft);
+}
+.crumbs a { color: var(--ink-soft); text-decoration: none; }
+.crumbs a:hover { color: var(--violet); }
+.crumbs [aria-current] { color: var(--ink); }
+.panel-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(28px, 4vw, 36px); line-height: 1.25; letter-spacing: -0.03em;
+  margin: 12px 0;
+}
+.panel-summary { color: var(--ink-soft); margin: 0 0 16px; }
+.chips-left { justify-content: flex-start; margin: 0 0 24px; }
+.panel .prose h2 { margin-top: 40px; font-size: 22px; }
+.section-label { margin: 40px 0 12px; }
+
+.planet-dot {
+  flex: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--glow), var(--land));
+  box-shadow: 0 0 12px var(--glow);
+}
+.planet-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.planet-list a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  text-decoration: none;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 16px 16px 16px 4px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.planet-list a:hover { border-color: var(--glow); transform: translateX(4px); }
+.planet-list .planet-no { font: 600 12px var(--font-mono); color: var(--ink-soft); }
+.planet-name { flex: 1; display: flex; flex-direction: column; font-weight: 600; line-height: 1.45; }
+.planet-name small { font: 11px var(--font-mono); color: var(--ink-soft); font-weight: 400; }
+.planet-list .arrow { color: var(--ink-soft); }
+.planet-badge {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0;
+  font: 500 12px var(--font-mono); letter-spacing: 0.06em; color: var(--glow);
+}
+.panel .pager { margin-top: 56px; }

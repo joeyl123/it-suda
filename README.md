@@ -10,6 +10,7 @@ React + Vite + TypeScript, Vercel 배포.
 3. 커밋 & 푸시 → Vercel이 자동으로 다시 배포
 
 파일명이 URL이 됩니다 (`/sessions/2026-10-12-ai-tools`). `_`로 시작하는 파일은 사이트에 안 보여요.
+사이트에서 회차 하나는 **태양계**, `
 GitHub 웹에서 **Add file → Create new file** 로 바로 작성해도 됩니다.
 
 ## 로컬 실행
