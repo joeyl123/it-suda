@@ -1,11 +1,11 @@
-import { lazy, Suspense, useMemo, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useMemo, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
 import SceneFallback from '../components/SceneFallback'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
-import { DIVE_MS, prefersReducedMotion, useZoomNavigate } from '../lib/zoom'
+import { anchorPoint, useZoomNavigate } from '../lib/zoom'
 
 const GalaxyScene = lazy(() => import('../three/GalaxyScene'))
 const webgl = hasWebGL()
@@ -13,16 +13,8 @@ const webgl = hasWebGL()
 export default function HomePage() {
   const [params, setParams] = useSearchParams()
   const go = useZoomNavigate()
-  const [diving, setDiving] = useState<string | null>(null)
-
-  // 별을 고르면: 카메라가 그 별로 파고든 뒤 → 태양계 페이지로 줌 전환
-  const enter = (slug: string) => {
-    if (diving) return
-    if (prefersReducedMotion()) return go(`/sessions/${slug}`, 'in')
-    setDiving(slug)
-    void import('../three/SystemScene')
-    window.setTimeout(() => go(`/sessions/${slug}`, 'in'), DIVE_MS)
-  }
+  // 별을 고르면 그 별을 중심으로 바로 줌인 전환 (새 태양계는 전환되는 동안 로드되며 자라난다)
+  const enter = (slug: string) => go(`/sessions/${slug}`, 'in', anchorPoint(slug))
   const query = params.get('q') ?? ''
   const tag = params.get('tag')
   const view = !webgl || params.get('view') === 'list' ? 'list' : 'galaxy'
@@ -68,10 +60,10 @@ export default function HomePage() {
 
   if (view === 'galaxy') {
     return (
-      <div className={`galaxy${diving ? ' is-diving' : ''}`}>
+      <div className="galaxy">
         <div className="stage stage-full">
           <Suspense fallback={<SceneFallback />}>
-            <GalaxyScene sessions={sessions} matches={matches} focus={diving} onSelect={enter} />
+            <GalaxyScene sessions={sessions} matches={matches} onSelect={enter} />
           </Suspense>
         </div>
         <div className="galaxy-ui">

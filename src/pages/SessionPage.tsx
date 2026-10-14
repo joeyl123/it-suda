@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, type CSSProperties } from 'react'
 import { useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
 import Prose from '../components/Prose'
@@ -7,7 +7,7 @@ import ZoomLink from '../components/ZoomLink'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
-import { DIVE_MS, prefersReducedMotion, useZoomNavigate } from '../lib/zoom'
+import { anchorPoint, useZoomNavigate } from '../lib/zoom'
 import NotFoundPage from './NotFoundPage'
 
 const SystemScene = lazy(() => import('../three/SystemScene'))
@@ -16,7 +16,6 @@ const webgl = hasWebGL()
 export default function SessionPage() {
   const { slug } = useParams()
   const go = useZoomNavigate()
-  const [diving, setDiving] = useState<number | null>(null)
   const session = slug ? getSession(slug) : undefined
   if (!session) return <NotFoundPage />
 
@@ -26,23 +25,16 @@ export default function SessionPage() {
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const system = systemProfile(session)
 
-  // 행성을 고르면: 카메라가 그 행성으로 파고든 뒤 → 행성 페이지로 줌 전환
-  const enter = (n: number) => {
-    if (diving !== null) return
-    const to = `/sessions/${session.slug}/${n}`
-    if (!webgl || prefersReducedMotion()) return go(to, 'in')
-    setDiving(n)
-    void import('../three/PlanetScene')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-    window.setTimeout(() => go(to, 'in'), DIVE_MS)
-  }
+  // 행성을 고르면 그 행성을 중심으로 바로 줌인 전환 (목록에서 눌러도 3D 속 그 행성 위치에서)
+  const enter = (n: number, fallback?: { x: number; y: number }) =>
+    go(`/sessions/${session.slug}/${n}`, 'in', anchorPoint(`p${n}`) ?? fallback)
 
   return (
-    <div className={`split${diving !== null ? ' is-diving' : ''}`} style={{ '--corona': system.corona } as CSSProperties}>
+    <div className="split" style={{ '--corona': system.corona } as CSSProperties}>
       <div className="stage">
         {webgl && (
           <Suspense fallback={<SceneFallback />}>
-            <SystemScene key={session.slug} session={session} focus={diving} onSelect={enter} />
+            <SystemScene key={session.slug} session={session} onSelect={(n) => enter(n)} />
           </Suspense>
         )}
         <div className="stage-tag">
@@ -88,7 +80,7 @@ export default function SessionPage() {
                   onClick={(e) => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
                     e.preventDefault()
-                    enter(t.index)
+                    enter(t.index, { x: e.clientX, y: e.clientY })
                   }}
                   style={{ '--glow': p.biome.glow, '--land': planetColors(p).land } as CSSProperties}
                 >

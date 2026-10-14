@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import ZoomLink from './ZoomLink'
-import { setZoomDir } from '../lib/zoom'
+import CosmicToast from './CosmicToast'
+import { prefetchScenes, setZoomDir } from '../lib/zoom'
 
 /** 은하(0) → 태양계(1) → 행성(2) */
 const depth = (path: string) => (path.startsWith('/sessions/') ? path.split('/').filter(Boolean).length - 1 : 0)
@@ -26,6 +27,8 @@ export default function Layout() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
+  useEffect(prefetchScenes, [])
+
   const atHome = location.pathname === '/'
   const atAbout = location.pathname === '/about'
 
@@ -44,6 +47,7 @@ export default function Layout() {
       <main className="main">
         <Outlet />
       </main>
+      <CosmicToast />
       <footer className="footer">
         <div className="container">
           <div className="footer-mark" aria-hidden="true"><span className="l">◐</span><span className="r">◑</span></div>

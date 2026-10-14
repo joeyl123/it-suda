@@ -4,19 +4,18 @@ import * as THREE from 'three'
 import { planetProfile, seeded, systemProfile, type PlanetProfile, type StarType } from '../lib/cosmos'
 import { pad2, type Session, type Topic } from '../lib/sessions'
 import { Anchor, Glow, IsoStage, OrbitRing, useHoverCursor, useLabelRegistry, type LabelRegistry } from './common'
+import { AsteroidBelt, Comet } from './effects'
 import Planet from './Planet'
 
 const SCALE = 1.5
 
 interface Props {
   session: Session
-  /** 이 토픽 번호의 행성으로 파고드는 중 (전환 직전) */
-  focus: number | null
   onSelect: (topicIndex: number) => void
 }
 
-export default function SystemScene({ session, focus, onSelect }: Props) {
-  const { star, corona } = systemProfile(session)
+export default function SystemScene({ session, onSelect }: Props) {
+  const { star, corona, seed } = systemProfile(session)
   const planets = useMemo(() => {
     // 행성 크기가 제각각이라 궤도 간격도 크기에 맞춰 벌린다
     let orbit = 1.6 + star.size * 1.2
@@ -36,26 +35,31 @@ export default function SystemScene({ session, focus, onSelect }: Props) {
       }
     })
   }, [session, star.size])
-  const extent = (planets.at(-1)?.orbit ?? 2) + 1.6
+  // 시드가 정하는 태양계의 덤: 바깥 소행성대, 긴 타원 궤도의 혜성
+  const extras = useMemo(() => {
+    const r = seeded(seed + '/extras')
+    return { belt: r() < 0.65, comet: r() < 0.55 }
+  }, [seed])
+  const last = planets.at(-1)?.orbit ?? 2
+  const extent = last + (extras.belt ? 2.6 : 1.6)
   const [hovered, setHovered] = useState<number | null>(null)
-  useHoverCursor(hovered !== null && focus === null)
+  useHoverCursor(hovered !== null)
   const { registry, bind } = useLabelRegistry()
   const hover = (n: number) => (on: boolean) => setHovered((h) => (on ? n : h === n ? null : h))
-  const focusId = focus !== null ? `p${focus}` : null
 
   return (
     <>
-      <IsoStage extent={extent} focus={focusId} registry={registry}>
+      <IsoStage extent={extent}>
         <Sun star={star} corona={corona} />
         {planets.map((p) => {
-          const lit = hovered === p.topic.index || focus === p.topic.index
+          const lit = hovered === p.topic.index
           return (
             <group key={p.id}>
               <OrbitRing radius={p.orbit} color={lit ? p.profile.biome.glow : corona} opacity={lit ? 0.6 : 0.22} />
               <OrbitingPlanet
                 {...p}
                 registry={registry}
-                paused={hovered !== null || focus !== null}
+                paused={hovered !== null}
                 hovered={lit}
                 onHover={hover(p.topic.index)}
                 onSelect={() => onSelect(p.topic.index)}
@@ -63,8 +67,10 @@ export default function SystemScene({ session, focus, onSelect }: Props) {
             </group>
           )
         })}
+        {extras.belt && <AsteroidBelt inner={last + 1.1} outer={last + 2.2} seed={seed} />}
+        {extras.comet && <Comet a={extent * 0.62} e={0.72} seed={seed} />}
       </IsoStage>
-      <div className={`label-layer${focus !== null ? ' is-leaving' : ''}`}>
+      <div className="label-layer">
         {planets.map(({ id, topic, profile }) => (
           <button
             key={id}

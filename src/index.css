@@ -12,7 +12,7 @@
   --panel: rgba(22, 18, 34, 0.78);
 
   --font-display: 'Orbitron', 'Orbit', 'Pretendard Variable', sans-serif; /* 영문·숫자 Orbitron, 한글 Orbit */
-  --font-body: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: 'Orbit', 'Pretendard Variable', Pretendard, system-ui, sans-serif; /* 본문도 우주 폰트. Pretendard는 Orbit 로딩 전 대체용 */
   --font-mono: 'Space Mono', 'Orbit', ui-monospace, monospace;
   color-scheme: dark;
 }
@@ -32,6 +32,7 @@ body {
   word-break: keep-all;
 }
 a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 6px; }
 ::selection { background: var(--butter); color: var(--ink); }
 

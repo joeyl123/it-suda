@@ -4,54 +4,55 @@ import * as THREE from 'three'
 import { planetColors, planetProfile, seeded, systemProfile } from '../lib/cosmos'
 import { formatDate, pad2, type Session } from '../lib/sessions'
 import { Anchor, Glow, IsoStage, OrbitRing, useHoverCursor, useLabelRegistry, type LabelRegistry } from './common'
+import GalaxyBody, { ARMS, armPoint } from './GalaxyBody'
+import { Astronaut, DriftingAsteroids, SpaceWhale, Ufo } from './effects'
 
-const ARMS = 3
-const TWIST = 0.32
+const RADIUS = 18
 
-/** 오래된 회차가 은하 중심 가까이, 최신 회차가 바깥쪽 나선 팔에 놓인다. */
-function systemPosition(i: number): [number, number, number] {
-  const r = 4 + i * 2.6
-  const a = r * TWIST + (i % ARMS) * ((Math.PI * 2) / ARMS)
-  return [Math.cos(a) * r, 0, Math.sin(a) * r]
+/** 태양계는 두 주팔을 번갈아, 오래된 회차일수록 중심 가까이 놓인다. */
+function systemPosition(i: number, n: number): [number, number, number] {
+  const arm = ARMS[i % 2]
+  const t = 0.22 + (0.68 * (i + 1)) / (n + 1)
+  const p = armPoint(arm, t, RADIUS)
+  return [p.x, 0.3, p.z]
 }
 
 interface Props {
   sessions: Session[]
   matches: Set<string>
-  /** 이 태양계로 파고드는 중 (전환 직전) */
-  focus: string | null
   onSelect: (slug: string) => void
 }
 
-export default function GalaxyScene({ sessions, matches, focus, onSelect }: Props) {
+export default function GalaxyScene({ sessions, matches, onSelect }: Props) {
   const ordered = useMemo(() => [...sessions].sort((a, b) => a.date.localeCompare(b.date)), [sessions])
-  const radius = Math.max(14, 4 + ordered.length * 2.6 + 5)
   const [hovered, setHovered] = useState<string | null>(null)
-  useHoverCursor(hovered !== null && !focus)
+  useHoverCursor(hovered !== null)
   const { registry, bind } = useLabelRegistry()
   const hover = (slug: string) => (on: boolean) => setHovered((h) => (on ? slug : h === slug ? null : h))
 
   return (
     <>
-      <IsoStage extent={radius * 0.8} pan autoRotate={hovered === null} offsetX={460} focus={focus} registry={registry}>
-        <SpiralArms radius={radius} />
-        <Glow color="#f2dc7e" scale={9} opacity={0.9} />
-        <Glow color="#b898ea" scale={18} opacity={0.35} />
+      <IsoStage extent={RADIUS * 0.85} pan autoRotate={hovered === null} offsetX={460}>
+        <GalaxyBody radius={RADIUS} />
         {ordered.map((s, i) => (
           <StarSystem
             key={s.slug}
             session={s}
             index={i}
-            position={systemPosition(i)}
+            position={systemPosition(i, ordered.length)}
             dim={!matches.has(s.slug)}
-            hovered={hovered === s.slug || focus === s.slug}
+            hovered={hovered === s.slug}
             registry={registry}
             onHover={hover(s.slug)}
             onSelect={() => onSelect(s.slug)}
           />
         ))}
+        <Ufo mode="flyby" span={RADIUS * 0.9} scale={0.55} />
+        <Astronaut span={RADIUS * 0.8} />
+        <SpaceWhale radius={RADIUS * 0.95} />
+        <DriftingAsteroids count={3} span={RADIUS} />
       </IsoStage>
-      <div className={`label-layer${focus ? ' is-leaving' : ''}`}>
+      <div className="label-layer">
         {ordered.map((s, i) => (
           <button
             key={s.slug}
@@ -72,43 +73,6 @@ export default function GalaxyScene({ sessions, matches, focus, onSelect }: Prop
         ))}
       </div>
     </>
-  )
-}
-
-function SpiralArms({ radius, count = 9000 }: { radius: number; count?: number }) {
-  const ref = useRef<THREE.Points>(null)
-  const geometry = useMemo(() => {
-    const rand = seeded('galaxy-arms')
-    const gauss = () => (rand() + rand() + rand() - 1.5) / 1.5
-    const pos = new Float32Array(count * 3)
-    const col = new Float32Array(count * 3)
-    const core = new THREE.Color('#f2dc7e')
-    const armColors = ['#b898ea', '#f0946e', '#7aa8f0'].map((c) => new THREE.Color(c))
-    const c = new THREE.Color()
-    for (let i = 0; i < count; i++) {
-      const arm = i % ARMS
-      const t = Math.pow(rand(), 0.75)
-      const r = 0.6 + t * radius
-      const a = r * TWIST + arm * ((Math.PI * 2) / ARMS) + gauss() * 0.35
-      const spread = 0.4 + t * 1.4
-      pos.set([Math.cos(a) * r + gauss() * spread, gauss() * 0.5 * (1 - t * 0.7), Math.sin(a) * r + gauss() * spread], i * 3)
-      c.copy(core).lerp(armColors[arm], Math.min(1, t * 1.6)).multiplyScalar(0.55 + rand() * 0.45)
-      col.set([c.r, c.g, c.b], i * 3)
-    }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3))
-    return g
-  }, [radius, count])
-
-  useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y -= dt * 0.015
-  })
-
-  return (
-    <points ref={ref} geometry={geometry}>
-      <pointsMaterial size={2.2} sizeAttenuation={false} vertexColors transparent opacity={0.85} depthWrite={false} blending={THREE.AdditiveBlending} />
-    </points>
   )
 }
 
