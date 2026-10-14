@@ -22,7 +22,7 @@ export default function SessionPage() {
       <div className="hud-tag">
         <span className="label">태양계 No.{no}</span>
         <span className="stage-sub">{system.star.name} · SEED {system.seed}</span>
-        <span className="hint">행성을 눌러 착륙</span>
+        {session.topicList.length > 0 && <span className="hint">행성을 눌러 착륙</span>}
       </div>
 
       <aside className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
@@ -51,24 +51,28 @@ export default function SessionPage() {
         {session.intro && <Prose>{session.intro}</Prose>}
 
         <h2 className="label section-label">이 태양계의 행성 · {session.topicList.length}</h2>
-        <ol className="planet-list">
-          {session.topicList.map((t) => {
-            const p = planetProfile(session, t)
-            return (
-              <li key={t.index}>
-                <Link to={`/sessions/${session.slug}/${t.index}`} style={{ '--glow': p.biome.glow, '--land': planetColors(p).land } as CSSProperties}>
-                  <span className="planet-dot" aria-hidden="true" />
-                  <span className="planet-no">{pad2(t.index)}</span>
-                  <span className="planet-name">
-                    {t.title}
-                    <small>{p.biome.name}</small>
-                  </span>
-                  <span className="arrow" aria-hidden="true">→</span>
-                </Link>
-              </li>
-            )
-          })}
-        </ol>
+        {session.topicList.length === 0 ? (
+          <p className="planet-empty">아직 발견된 행성이 없어요. 탐사 기록이 정리되면 하나씩 떠오를 거예요.</p>
+        ) : (
+          <ol className="planet-list">
+            {session.topicList.map((t) => {
+              const p = planetProfile(session, t)
+              return (
+                <li key={t.index}>
+                  <Link to={`/sessions/${session.slug}/${t.index}`} style={{ '--glow': p.biome.glow, '--land': planetColors(p).land } as CSSProperties}>
+                    <span className="planet-dot" aria-hidden="true" />
+                    <span className="planet-no">{pad2(t.index)}</span>
+                    <span className="planet-name">
+                      {t.title}
+                      <small>{p.biome.name}</small>
+                    </span>
+                    <span className="arrow" aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ol>
+        )}
       </aside>
 
       <DepthNav

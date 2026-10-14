@@ -48,9 +48,11 @@ function splitTopics(body: string) {
     else if (topics.length) topics[topics.length - 1].body += line + '\n'
     else intro.push(line)
   }
+  // 마크다운 주석(<!-- ... -->)은 작성자용 메모 → 화면에 보이지 않게
+  const clean = (text: string) => text.replace(/<!--[\s\S]*?-->/g, '').trim()
   return {
-    intro: intro.join('\n').trim(),
-    topics: topics.map((t) => ({ ...t, body: t.body.trim() })),
+    intro: clean(intro.join('\n')),
+    topics: topics.map((t) => ({ ...t, body: clean(t.body) })),
   }
 }
 

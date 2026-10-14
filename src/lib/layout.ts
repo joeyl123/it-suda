@@ -90,7 +90,7 @@ export function systemLayout(session: Session): SystemLayout {
   const belt = extras() < 0.4
   const comet = extras() < 0.3
   const last = planets.at(-1)?.orbit ?? 2
-  const layout = { planets, belt, comet, last, extent: last + (belt ? 2.6 : 1.6) }
+  const layout = { planets, belt, comet, last, extent: Math.max(6, last + (belt ? 2.6 : 1.6)) } // 행성이 아직 없는 태양계도 항성만 화면을 꽉 채우지 않게
   layoutCache.set(session.slug, layout)
   return layout
 }
