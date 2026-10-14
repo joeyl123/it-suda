@@ -1,48 +1,118 @@
-/* 3D galaxy views — design.md §4-B */
+/* 하나의 우주 + 그 위에 뜬 패널들 — design.md §4, §6 */
 
-/* ---------- 3D stage ---------- */
-.stage { position: relative; overflow: hidden; touch-action: none; }
-.stage canvas { display: block; }
-.scene-loading {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  font-family: var(--font-mono); font-size: 13px; color: var(--ink-soft);
-}
-.spinner {
-  width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid var(--rule); border-top-color: var(--violet);
-  animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.hint { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); margin: 0; }
-.stage-tag { position: absolute; left: 24px; top: 20px; margin: 0; pointer-events: none; }
-.stage-hint { position: absolute; left: 24px; bottom: 20px; pointer-events: none; }
-.biome-tag { display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--ink-soft); }
-.biome-tag .label { color: var(--glow); }
+/* ---------- Universe (늘 화면 전체, 맨 아래 층) ---------- */
+.universe { position: fixed; inset: 0; z-index: 0; touch-action: none; }
+.universe canvas { display: block; }
+.universe-loading { background: radial-gradient(circle at 60% 45%, rgba(242, 220, 126, 0.12), transparent 40%); }
 
-/* ---------- Galaxy (home) ---------- */
-.galaxy { position: relative; }
-.stage-full { height: calc(100svh - 64px); min-height: 520px; }
-.galaxy-ui {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
-  padding: 32px 24px 24px;
-  pointer-events: none;
-  z-index: 30; /* 3D 라벨(zIndexRange 0–20) 위로 */
+/* ---------- 3D labels (Anchor → DOM) ---------- */
+.label-layer { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.label-layer > * {
+  position: absolute; left: 0; top: 0;
+  visibility: hidden; pointer-events: auto; will-change: transform;
+  transition: opacity 0.35s;
 }
-.galaxy-hero {
-  max-width: 400px;
-  pointer-events: auto;
-  padding: 24px;
+.label-layer.is-hidden > * { opacity: 0; pointer-events: none; }
+
+.sys-label {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 12px;
+  color: var(--ink); text-align: center; white-space: nowrap;
+  background: rgba(15, 12, 24, 0.55);
+  border: 1px solid transparent; border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.35s, border-color 0.2s, background 0.2s;
+}
+.sys-label.is-hover { border-color: var(--corona); background: var(--panel); }
+.sys-label.is-dim { opacity: 0.25; }
+.sys-no { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--corona); }
+.sys-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.01em; }
+.sys-meta { font: 11px var(--font-mono); color: var(--ink-soft); }
+
+.planet-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  font-size: 13px; color: var(--ink); white-space: nowrap;
+  background: rgba(15, 12, 24, 0.6);
+  border: 1px solid var(--rule); border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.35s, border-color 0.2s, background 0.2s;
+}
+.planet-label .planet-no {
+  font: 600 11px var(--font-mono);
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--glow); color: #0f0c18;
+}
+.planet-label.is-hover { border-color: var(--glow); background: var(--panel); }
+
+/* ---------- HUD: 우주 위에 뜬 모든 글자 ---------- */
+.hud > * { pointer-events: auto; }
+
+.panel {
+  position: fixed; z-index: 10;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 32px;
   background: var(--panel);
   border: 1px solid var(--rule);
-  border-radius: 20px 20px 20px 4px;
-  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
 }
+/* 카메라가 날아가는 동안 패널은 한 박자 늦게 떠오른다 */
+.panel-left { top: 80px; left: 24px; width: 400px; max-height: calc(100svh - 160px); border-bottom-left-radius: 4px; animation: panel-in-left 0.7s 0.15s both; }
+.panel-right { top: 80px; right: 24px; bottom: 24px; width: 460px; border-bottom-right-radius: 4px; animation: panel-in-right 0.8s 0.55s both; }
+.panel-center { top: 88px; bottom: 24px; left: 0; right: 0; margin: 0 auto; width: min(820px, calc(100vw - 32px)); animation: panel-in-up 0.6s 0.1s both; }
+
+@keyframes panel-in-left { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes panel-in-right { from { opacity: 0; transform: translateX(32px); } }
+@keyframes panel-in-up { from { opacity: 0; transform: translateY(24px); } }
+@keyframes panel-in-sheet { from { opacity: 0; transform: translateY(40px); } }
+
+/* 모바일: 패널은 아래에서 올라오는 시트, 우주는 위쪽에 */
+@media (max-width: 899px) {
+  .panel { padding: 24px 20px; }
+  .panel-left, .panel-right {
+    top: auto; left: 8px; right: 8px; bottom: 8px; width: auto;
+    max-height: 44svh;
+    border-radius: 24px 24px 24px 4px;
+    animation-name: panel-in-sheet;
+  }
+  .panel-center { top: 72px; bottom: 8px; left: 8px; right: 8px; width: auto; }
+}
+
+.hud-tag {
+  position: fixed; top: 80px; left: 24px; z-index: 5;
+  display: flex; flex-direction: column; gap: 2px;
+  pointer-events: none !important;
+  animation: panel-in-left 0.7s 0.6s both;
+}
+.hud-tag .hint { margin-top: 6px; }
+.biome-tag { font-size: 14px; color: var(--ink-soft); max-width: 320px; }
+.biome-tag .label { color: var(--glow); }
+.stage-sub { font: 11px var(--font-mono); letter-spacing: 0.06em; color: var(--ink-soft); }
+@media (max-width: 899px) {
+  .hud-tag { top: 72px; left: 16px; }
+  .hud-tag .hint { display: none; }
+}
+
+.hud-bottom {
+  position: fixed; left: 24px; bottom: 24px; z-index: 10;
+  display: flex; align-items: center; gap: 16px;
+  animation: panel-in-up 0.6s 0.3s both;
+}
+@media (max-width: 899px) {
+  .hud-bottom { left: auto; right: 12px; bottom: auto; top: 72px; }
+  .hud-bottom .hint { display: none; }
+}
+.hint { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); margin: 0; }
+
+/* ---------- Galaxy intro card ---------- */
 .galaxy-hero .label { margin: 0 0 8px; }
 .galaxy-hero h1 {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(32px, 4vw, 44px); line-height: 1.15; letter-spacing: 0.01em;
+  font-size: clamp(30px, 4vw, 42px); line-height: 1.15; letter-spacing: 0.01em;
   margin: 0 0 12px;
 }
 .galaxy-hero .accent, .hero .accent { color: var(--apricot); }
@@ -54,7 +124,10 @@
 .galaxy-hero .search input { padding: 12px 20px; font-size: 15px; text-align: left; }
 .galaxy-hero .chips { justify-content: flex-start; }
 .match-note { margin: 12px 0 0; font-family: var(--font-mono); font-size: 12px; color: var(--violet); }
-.galaxy-bottom { display: flex; align-items: center; gap: 16px; pointer-events: auto; }
+@media (max-width: 899px) {
+  .galaxy-hero h1 { font-size: 28px; }
+  .galaxy-hero .stats { display: none; }
+}
 
 .view-toggle {
   display: inline-flex; padding: 4px; gap: 4px;
@@ -67,64 +140,11 @@
   padding: 6px 16px; border-radius: 999px;
 }
 .view-toggle button[aria-selected='true'] { background: var(--ink); color: var(--paper); }
-.hero .view-toggle { margin-top: 8px; }
+.panel-center .hero { padding: 8px 0 32px; }
+.panel-center .hero .view-toggle { margin-top: 8px; }
+.panel-center .toolbar { margin-bottom: 40px; }
 
-@media (max-width: 719px) {
-  .stage-full { height: 60svh; min-height: 380px; }
-  .galaxy-ui { position: static; padding: 0 16px 48px; gap: 16px; margin-top: -40px; align-items: stretch; }
-  .galaxy-hero { max-width: none; position: relative; }
-  .hint { display: none; }
-}
-
-/* ---------- 3D labels (Anchor → DOM) ---------- */
-.label-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
-.label-layer > * { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: auto; will-change: transform; }
-.sys-label {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 6px 12px;
-  font: inherit; color: var(--ink); text-align: center; white-space: nowrap;
-  background: rgba(15, 12, 24, 0.55);
-  border: 1px solid transparent; border-radius: 12px;
-  cursor: pointer;
-  transition: opacity 0.2s, border-color 0.2s, background 0.2s;
-}
-.sys-label.is-hover { border-color: var(--corona); background: var(--panel); }
-.sys-label.is-dim { opacity: 0.25; }
-.sys-no { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--corona); }
-.sys-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.01em; }
-.sys-meta { font: 11px var(--font-mono); color: var(--ink-soft); }
-
-.planet-label {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 12px 4px 4px;
-  font: 500 13px var(--font-body); color: var(--ink); white-space: nowrap;
-  background: rgba(15, 12, 24, 0.6);
-  border: 1px solid var(--rule); border-radius: 999px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.planet-label .planet-no {
-  font: 600 11px var(--font-mono);
-  padding: 2px 8px; border-radius: 999px;
-  background: var(--glow); color: #0f0c18;
-}
-.planet-label.is-hover { border-color: var(--glow); background: var(--panel); }
-
-/* ---------- Split view (system / planet) ---------- */
-.split { display: grid; grid-template-columns: 1fr; }
-.split > .stage { height: 56svh; min-height: 340px; }
-.panel { padding: 32px 16px 80px; }
-@media (min-width: 960px) {
-  .split { grid-template-columns: minmax(0, 1fr) 480px; }
-  .split > .stage { position: sticky; top: 64px; height: calc(100svh - 64px); }
-  .panel {
-    padding: 40px 40px 96px;
-    border-left: 1px solid var(--rule);
-    background: var(--panel);
-    backdrop-filter: blur(12px);
-    min-height: calc(100svh - 64px);
-  }
-}
+/* ---------- Panel content (태양계 · 행성) ---------- */
 .crumbs {
   display: flex; flex-wrap: wrap; gap: 8px;
   margin-bottom: 24px;
@@ -135,7 +155,7 @@
 .crumbs [aria-current] { color: var(--ink); }
 .panel-title {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(28px, 4vw, 36px); line-height: 1.25; letter-spacing: 0.01em;
+  font-size: clamp(26px, 3.5vw, 34px); line-height: 1.25; letter-spacing: 0.01em;
   margin: 12px 0;
 }
 .panel-summary { color: var(--ink-soft); margin: 0 0 16px; }
@@ -169,44 +189,11 @@
   font: 500 12px var(--font-mono); letter-spacing: 0.06em; color: var(--glow);
 }
 .panel .pager { margin-top: 56px; }
-
-/* ---------- Zoom transitions (design.md §6) ---------- */
-/* 클릭 즉시 전환이 시작된다. 옛 화면은 클릭한 별/행성(--vt-x/y)을 향해 빨려 들어가듯 커지며 사라지고,
-   새 화면(라이브 레이어 — 3D가 로드·렌더되는 모습이 그대로 보인다)은 같은 점에서 자라난다. */
-.header { view-transition-name: site-header; }
-::view-transition-old(root),
-::view-transition-new(root) {
-  transform-origin: var(--vt-x, 50%) var(--vt-y, 50%);
-  animation-duration: 0.95s;
-  animation-timing-function: cubic-bezier(0.55, 0, 0.2, 1);
-  animation-fill-mode: both;
-}
-html[data-zoom='in']::view-transition-old(root) { animation-name: vt-in-old; }
-html[data-zoom='in']::view-transition-new(root) { animation-name: vt-in-new; }
-html[data-zoom='out']::view-transition-old(root) { animation-name: vt-out-old; }
-html[data-zoom='out']::view-transition-new(root) { animation-name: vt-out-new; }
-html[data-zoom='side']::view-transition-old(root) { animation-name: vt-side-old; animation-duration: 0.45s; }
-html[data-zoom='side']::view-transition-new(root) { animation-name: vt-side-new; animation-duration: 0.45s; }
-
-@keyframes vt-in-old {
-  60% { opacity: 1; }
-  to { transform: scale(4); opacity: 0; filter: blur(10px) brightness(1.8); }
-}
-@keyframes vt-in-new {
-  from { transform: scale(0.15); opacity: 0; filter: brightness(2); }
-  40% { opacity: 1; }
-}
-@keyframes vt-out-old { to { transform: scale(0.3); opacity: 0; } }
-@keyframes vt-out-new { from { transform: scale(2.4); opacity: 0; filter: blur(8px); } }
-@keyframes vt-side-old { to { transform: translateX(-4%); opacity: 0; } }
-@keyframes vt-side-new { from { transform: translateX(4%); opacity: 0; } }
+.about-foot { margin-top: 48px; text-align: center; font-size: 13px; color: var(--ink-soft); }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .panel, .hud-tag, .hud-bottom { animation: none; }
 }
-
-.stage-tag { display: flex; flex-direction: column; gap: 2px; }
-.stage-sub { font: 11px var(--font-mono); letter-spacing: 0.06em; color: var(--ink-soft); }
 
 /* ---------- Easter egg toast ---------- */
 .cosmic-toast-wrap {

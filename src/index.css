@@ -47,25 +47,27 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 
 /* ---------- Shell ---------- */
-.app { min-height: 100vh; display: flex; flex-direction: column; }
+html, body, #root { height: 100%; }
+body { overflow: hidden; }
+.app { position: relative; z-index: 2; height: 100%; pointer-events: none; }
 .container { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 16px; }
 @media (min-width: 720px) { .container { padding: 0 24px; } }
-.main { flex: 1; }
-.page { padding-top: 48px; padding-bottom: 96px; }
 .muted { color: var(--ink-soft); }
 
+/* 헤더는 우주 위에 떠 있다 (배경 없이 위쪽만 살짝 어둡게) */
 .header {
-  position: sticky; top: 0; z-index: 10;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--rule);
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  pointer-events: auto;
+  background: linear-gradient(to bottom, rgba(15, 12, 24, 0.85), rgba(15, 12, 24, 0));
 }
 .header-inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   height: 64px;
+  padding: 0 24px;
 }
+@media (max-width: 719px) { .header-inner { padding: 0 12px; } }
 .header-inner > :first-child { justify-self: start; }
 .header-inner > :last-child { justify-self: end; }
 .brand {
@@ -78,6 +80,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-family: var(--font-mono); font-size: 13px; font-weight: 500; letter-spacing: 0.04em;
   text-decoration: none; color: var(--ink-soft);
   padding: 6px 12px; border-radius: 999px; border: 1px solid transparent;
+  background: rgba(15, 12, 24, 0.4);
   transition: color 0.15s, border-color 0.15s;
 }
 .nav-link:hover { color: var(--ink); }
@@ -85,17 +88,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 479px) {
   .brand span { display: none; }
 }
-
-.footer {
-  border-top: 1px solid var(--rule);
-  padding: 32px 0 40px;
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-.footer-mark { font-size: 18px; letter-spacing: 0.4em; margin-bottom: 8px; color: var(--ink); }
-.footer-mark .l { color: var(--violet); }
-.footer-mark .r { color: var(--apricot); }
 
 /* ---------- Hero ---------- */
 .hero { text-align: center; padding: 16px 0 48px; }

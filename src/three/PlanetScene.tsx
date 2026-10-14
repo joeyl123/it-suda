@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { seeded, type PlanetProfile, type SystemProfile } from '../lib/cosmos'
+import { planetProfile, seeded, systemProfile } from '../lib/cosmos'
+import { planetRestPosition } from '../lib/layout'
+import type { Session, Topic } from '../lib/sessions'
 import { cosmicToast } from '../lib/toast'
-import { Glow, IsoStage, OrbitRing, POLAR_FULL } from './common'
+import { Glow, OrbitRing } from './common'
 import { RocketPad, Satellite, Ufo, type Launch } from './effects'
 import Planet from './Planet'
+import type { SceneProps } from './Universe'
 
 const MOON_COLORS = ['#c9c4bc', '#a8a29a', '#d8cbb0', '#9aa3ad']
 let launchId = 0
 let firstLaunchHint = true
 
-/** 토픽 하나 = 행성 하나의 생태계. 가까이서 본 모습. 표면을 누르면 그 자리에서 로켓이 발사된다. */
-export default function PlanetScene({ profile, system }: { profile: PlanetProfile; system: SystemProfile }) {
+/** 토픽 하나 = 행성 하나의 생태계 (행성 좌표, 반지름 1). 표면을 누르면 그 자리에서 로켓이 발사된다. */
+export default function PlanetScene({ session, topic, interactive }: SceneProps & { session: Session; topic: Topic }) {
+  const profile = useMemo(() => planetProfile(session, topic), [session, topic])
+  const system = systemProfile(session)
   const moons = useMemo(() => {
     const rand = seeded(profile.seed + '/moons')
     return Array.from({ length: profile.moons }, (_, i) => ({
@@ -28,27 +33,35 @@ export default function PlanetScene({ profile, system }: { profile: PlanetProfil
     const r = seeded(profile.seed + '/visitors')
     return { ufo: r() < 0.5, satellite: r() < 0.75 }
   }, [profile])
+  // 이 태양계의 항성은 실제로 있는 방향(행성 → 태양)에 멀리 보인다
+  const sunAt = useMemo(() => {
+    const p = planetRestPosition(session, topic.index)
+    return new THREE.Vector3(-p[0], 4, -p[2]).normalize().multiplyScalar(22).toArray() as [number, number, number]
+  }, [session, topic.index])
 
   const [launches, setLaunches] = useState<Launch[]>([])
   const launch = (dir: THREE.Vector3) => setLaunches((l) => [...l.slice(-5), { id: launchId++, dir: dir.clone().normalize() }])
 
   // 가끔 저절로 발사
   useEffect(() => {
+    if (!interactive) return
     const t = window.setInterval(() => {
       if (Math.random() < 0.5) launch(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5))
     }, 9000)
     return () => window.clearInterval(t)
-  }, [])
+  }, [interactive])
 
   return (
-    <IsoStage extent={profile.ring || profile.moons ? 2.5 : 1.75} polar={POLAR_FULL}>
+    <>
       <Planet
         profile={profile}
         detail={24}
         propBudget={320}
         cloudBudget={46}
         onClick={(e) => {
+          if (!interactive) return
           e.stopPropagation()
+          // 조작 가능한 장면은 항상 원점·축척 1에 있으므로 클릭 지점 = 행성 좌표
           launch(e.point)
           if (firstLaunchHint) {
             firstLaunchHint = false
@@ -63,12 +76,13 @@ export default function PlanetScene({ profile, system }: { profile: PlanetProfil
       <Satellites color={profile.biome.glow} />
       {extras.satellite && <Satellite radius={1.45 + profile.amp} tilt={profile.tilt + 0.5} />}
       {extras.ufo && <Ufo mode="orbit" span={1.75 + profile.amp} scale={0.11} />}
-      {/* 멀리 보이는 이 태양계의 항성 */}
-      <group position={[-14, 6, -18]}>
-        <Glow color={system.star.core} scale={5 * system.star.size} />
-        <Glow color={system.corona} scale={12} opacity={0.5} />
-      </group>
-    </IsoStage>
+      {interactive && (
+        <group position={sunAt}>
+          <Glow color={system.star.core} scale={5 * system.star.size} />
+          <Glow color={system.corona} scale={12} opacity={0.5} />
+        </group>
+      )}
+    </>
   )
 }
 

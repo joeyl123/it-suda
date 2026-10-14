@@ -1,6 +1,6 @@
 export default function AboutPage() {
   return (
-    <div className="container page prose about">
+    <section className="panel panel-center prose about">
       <p className="label" style={{ textAlign: 'center' }}>ABOUT</p>
       <h1>마주 앉아 나누는<br />IT 이야기</h1>
       <p className="lead">
@@ -28,6 +28,7 @@ export default function AboutPage() {
           </p>
         </div>
       </div>
-    </div>
+      <p className="about-foot">◐◑ IT 수다 모임 · 당근 소모임에서 마주 앉아 나눈 이야기들</p>
+    </section>
   )
 }

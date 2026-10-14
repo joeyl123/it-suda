@@ -8,29 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
 import { getGlowTexture } from './glow'
-
-export interface Arm {
-  offset: number
-  twist: number
-  width: number
-  length: number
-  weight: number
-  colors: [string, string]
-}
-
-export const ARMS: Arm[] = [
-  { offset: 0, twist: 0.33, width: 1, length: 1, weight: 0.34, colors: ['#b898ea', '#ff8fc7'] },
-  { offset: Math.PI, twist: 0.31, width: 1.1, length: 0.95, weight: 0.34, colors: ['#f0946e', '#f2dc7e'] },
-  { offset: Math.PI / 2 + 0.3, twist: 0.36, width: 0.6, length: 0.75, weight: 0.16, colors: ['#7aa8f0', '#7fe6df'] },
-  { offset: -Math.PI / 2 + 0.2, twist: 0.29, width: 0.55, length: 0.85, weight: 0.16, colors: ['#9be7a0', '#a8dcf0'] },
-]
-
-/** 팔 위 한 점. t: 0(중심)~1(끝) */
-export function armPoint(arm: Arm, t: number, radius: number, wobble = 0) {
-  const r = 1.2 + t * radius * arm.length
-  const a = arm.offset + r * arm.twist + Math.sin(r * 0.55 + arm.offset) * 0.18 + wobble
-  return { r, a, x: Math.cos(a) * r, z: Math.sin(a) * r }
-}
+import { ARMS, armPoint } from '../lib/layout'
 
 // ---------------------------------------------------------------- twinkle points
 

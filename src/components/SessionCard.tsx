@@ -1,10 +1,10 @@
-import ZoomLink from './ZoomLink'
+import { Link } from 'react-router-dom'
 import { formatDate, type Session } from '../lib/sessions'
 
 export default function SessionCard({ session }: { session: Session }) {
   return (
     <article className="card">
-      <ZoomLink to={`/sessions/${session.slug}`} dir="in" className="card-link">
+      <Link to={`/sessions/${session.slug}`} className="card-link">
         <div className="card-meta">
           <time>{formatDate(session.date)}</time>
           {session.location && (
@@ -24,7 +24,7 @@ export default function SessionCard({ session }: { session: Session }) {
             {session.topics.length > 4 && <li className="more">+{session.topics.length - 4}개 더</li>}
           </ul>
         )}
-      </ZoomLink>
+      </Link>
       <div className="card-tags">
         {session.tags.map((t) => (
           <span key={t} className="tag">#{t}</span>

@@ -1,16 +1,11 @@
-import { lazy, Suspense, type CSSProperties } from 'react'
-import { useParams } from 'react-router-dom'
+import type { CSSProperties } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
-import SceneFallback from '../components/SceneFallback'
-import ZoomLink from '../components/ZoomLink'
-import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
+import { planetColors, planetProfile } from '../lib/cosmos'
 import { getSession, pad2 } from '../lib/sessions'
-import { hasWebGL } from '../lib/webgl'
 import NotFoundPage from './NotFoundPage'
 
-const PlanetScene = lazy(() => import('../three/PlanetScene'))
-const webgl = hasWebGL()
-
+/** 행성 화면: 3D 행성(뒤 배경 Universe) 위에 오른쪽 패널. */
 export default function TopicPage() {
   const { slug, topic: topicParam } = useParams()
   const session = slug ? getSession(slug) : undefined
@@ -18,7 +13,6 @@ export default function TopicPage() {
   if (!session || !topic) return <NotFoundPage />
 
   const profile = planetProfile(session, topic)
-  const system = systemProfile(session)
   const prev = session.topicList[topic.index - 2]
   const next = session.topicList[topic.index]
   const no = session.number !== undefined ? pad2(session.number) : '··'
@@ -28,30 +22,24 @@ export default function TopicPage() {
     profile.moons ? `위성 ${profile.moons}개` : null,
     profile.clouds > 0.8 ? '구름 많음' : null,
   ].filter(Boolean)
+  const tone = { '--glow': profile.biome.glow, '--land': planetColors(profile).land } as CSSProperties
 
   return (
-    <div className="split" style={{ '--glow': profile.biome.glow, '--land': planetColors(profile).land } as CSSProperties}>
-      <div className="stage">
-        {webgl && (
-          <Suspense fallback={<SceneFallback />}>
-            <PlanetScene key={profile.seed} profile={profile} system={system} />
-          </Suspense>
-        )}
-        <div className="stage-tag biome-tag">
-          <span className="label">{profile.biome.name}</span>
-          <span>{profile.biome.blurb}</span>
-          <span className="stage-sub">
-            SEED {profile.seed}
-            {facts.length > 0 && ` · ${facts.join(' · ')}`}
-          </span>
-        </div>
+    <>
+      <div className="hud-tag biome-tag" style={tone}>
+        <span className="label">{profile.biome.name}</span>
+        <span>{profile.biome.blurb}</span>
+        <span className="stage-sub">
+          SEED {profile.seed}
+          {facts.length > 0 && ` · ${facts.join(' · ')}`}
+        </span>
       </div>
 
-      <aside className="panel">
+      <aside className="panel panel-right" style={tone}>
         <nav className="crumbs">
-          <ZoomLink to="/" dir="out">은하</ZoomLink>
+          <Link to="/">은하</Link>
           <span>/</span>
-          <ZoomLink to={`/sessions/${session.slug}`} dir="out">No.{no}</ZoomLink>
+          <Link to={`/sessions/${session.slug}`}>No.{no}</Link>
           <span>/</span>
           <span aria-current="page">행성 {pad2(topic.index)}</span>
         </nav>
@@ -64,29 +52,29 @@ export default function TopicPage() {
 
         <nav className="pager">
           {prev ? (
-            <ZoomLink to={`/sessions/${session.slug}/${prev.index}`} dir="side" className="prev">
+            <Link to={`/sessions/${session.slug}/${prev.index}`} className="prev">
               <span className="label">← 이전 행성</span>
               <span className="title">{prev.title}</span>
-            </ZoomLink>
+            </Link>
           ) : (
-            <ZoomLink to={`/sessions/${session.slug}`} dir="out" className="prev">
+            <Link to={`/sessions/${session.slug}`} className="prev">
               <span className="label">← 태양계로</span>
               <span className="title">{session.title}</span>
-            </ZoomLink>
+            </Link>
           )}
           {next ? (
-            <ZoomLink to={`/sessions/${session.slug}/${next.index}`} dir="side" className="next">
+            <Link to={`/sessions/${session.slug}/${next.index}`} className="next">
               <span className="label">다음 행성 →</span>
               <span className="title">{next.title}</span>
-            </ZoomLink>
+            </Link>
           ) : (
-            <ZoomLink to={`/sessions/${session.slug}`} dir="out" className="next">
+            <Link to={`/sessions/${session.slug}`} className="next">
               <span className="label">태양계로 →</span>
               <span className="title">{session.title}</span>
-            </ZoomLink>
+            </Link>
           )}
         </nav>
       </aside>
-    </div>
+    </>
   )
 }

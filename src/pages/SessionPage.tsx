@@ -1,21 +1,14 @@
-import { lazy, Suspense, type CSSProperties } from 'react'
-import { useParams } from 'react-router-dom'
+import type { CSSProperties } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
 import Prose from '../components/Prose'
-import SceneFallback from '../components/SceneFallback'
-import ZoomLink from '../components/ZoomLink'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2, sessions } from '../lib/sessions'
-import { hasWebGL } from '../lib/webgl'
-import { anchorPoint, useZoomNavigate } from '../lib/zoom'
 import NotFoundPage from './NotFoundPage'
 
-const SystemScene = lazy(() => import('../three/SystemScene'))
-const webgl = hasWebGL()
-
+/** 태양계 화면: 3D 태양계(뒤 배경 Universe) 위에 오른쪽 패널. */
 export default function SessionPage() {
   const { slug } = useParams()
-  const go = useZoomNavigate()
   const session = slug ? getSession(slug) : undefined
   if (!session) return <NotFoundPage />
 
@@ -25,28 +18,17 @@ export default function SessionPage() {
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const system = systemProfile(session)
 
-  // 행성을 고르면 그 행성을 중심으로 바로 줌인 전환 (목록에서 눌러도 3D 속 그 행성 위치에서)
-  const enter = (n: number, fallback?: { x: number; y: number }) =>
-    go(`/sessions/${session.slug}/${n}`, 'in', anchorPoint(`p${n}`) ?? fallback)
-
   return (
-    <div className="split" style={{ '--corona': system.corona } as CSSProperties}>
-      <div className="stage">
-        {webgl && (
-          <Suspense fallback={<SceneFallback />}>
-            <SystemScene key={session.slug} session={session} onSelect={(n) => enter(n)} />
-          </Suspense>
-        )}
-        <div className="stage-tag">
-          <span className="label">태양계 No.{no}</span>
-          <span className="stage-sub">{system.star.name} · SEED {system.seed}</span>
-        </div>
-        {webgl && <p className="hint stage-hint">행성을 눌러 착륙</p>}
+    <>
+      <div className="hud-tag">
+        <span className="label">태양계 No.{no}</span>
+        <span className="stage-sub">{system.star.name} · SEED {system.seed}</span>
+        <span className="hint">행성을 눌러 착륙</span>
       </div>
 
-      <aside className="panel">
+      <aside className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
         <nav className="crumbs">
-          <ZoomLink to="/" dir="out">은하</ZoomLink>
+          <Link to="/">은하</Link>
           <span>/</span>
           <span aria-current="page">No.{no}</span>
         </nav>
@@ -63,7 +45,7 @@ export default function SessionPage() {
         {session.summary && <p className="panel-summary">{session.summary}</p>}
         <div className="chips chips-left">
           {session.tags.map((t) => (
-            <TagChip key={t} tag={t} zoomOut />
+            <TagChip key={t} tag={t} />
           ))}
         </div>
 
@@ -75,15 +57,7 @@ export default function SessionPage() {
             const p = planetProfile(session, t)
             return (
               <li key={t.index}>
-                <a
-                  href={`/sessions/${session.slug}/${t.index}`}
-                  onClick={(e) => {
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
-                    e.preventDefault()
-                    enter(t.index, { x: e.clientX, y: e.clientY })
-                  }}
-                  style={{ '--glow': p.biome.glow, '--land': planetColors(p).land } as CSSProperties}
-                >
+                <Link to={`/sessions/${session.slug}/${t.index}`} style={{ '--glow': p.biome.glow, '--land': planetColors(p).land } as CSSProperties}>
                   <span className="planet-dot" aria-hidden="true" />
                   <span className="planet-no">{pad2(t.index)}</span>
                   <span className="planet-name">
@@ -91,7 +65,7 @@ export default function SessionPage() {
                     <small>{p.biome.name}</small>
                   </span>
                   <span className="arrow" aria-hidden="true">→</span>
-                </a>
+                </Link>
               </li>
             )
           })}
@@ -99,21 +73,21 @@ export default function SessionPage() {
 
         <nav className="pager">
           {older ? (
-            <ZoomLink to={`/sessions/${older.slug}`} dir="side" className="prev">
+            <Link to={`/sessions/${older.slug}`} className="prev">
               <span className="label">← 이전 태양계</span>
               <span className="title">{older.title}</span>
-            </ZoomLink>
+            </Link>
           ) : (
             <span />
           )}
           {newer && (
-            <ZoomLink to={`/sessions/${newer.slug}`} dir="side" className="next">
+            <Link to={`/sessions/${newer.slug}`} className="next">
               <span className="label">다음 태양계 →</span>
               <span className="title">{newer.title}</span>
-            </ZoomLink>
+            </Link>
           )}
         </nav>
       </aside>
-    </div>
+    </>
   )
 }

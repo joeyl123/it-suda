@@ -1,26 +1,20 @@
-import { lazy, Suspense, useMemo, type CSSProperties } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
-import SceneFallback from '../components/SceneFallback'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
-import { anchorPoint, useZoomNavigate } from '../lib/zoom'
 
-const GalaxyScene = lazy(() => import('../three/GalaxyScene'))
 const webgl = hasWebGL()
 
+/** 은하 화면: 3D 은하(뒤 배경 Universe) 위에 소개 카드 하나. 목록 보기는 가운데 패널. */
 export default function HomePage() {
   const [params, setParams] = useSearchParams()
-  const go = useZoomNavigate()
-  // 별을 고르면 그 별을 중심으로 바로 줌인 전환 (새 태양계는 전환되는 동안 로드되며 자라난다)
-  const enter = (slug: string) => go(`/sessions/${slug}`, 'in', anchorPoint(slug))
   const query = params.get('q') ?? ''
   const tag = params.get('tag')
   const view = !webgl || params.get('view') === 'list' ? 'list' : 'galaxy'
   const tags = useMemo(allTags, [])
   const results = useMemo(() => searchSessions(query, tag), [query, tag])
-  const matches = useMemo(() => new Set(results.map((s) => s.slug)), [results])
   const topicCount = sessions.reduce((n, s) => n + s.topicList.length, 0)
 
   const setParam = (key: string, value: string | null) => {
@@ -60,52 +54,43 @@ export default function HomePage() {
 
   if (view === 'galaxy') {
     return (
-      <div className="galaxy">
-        <div className="stage stage-full">
-          <Suspense fallback={<SceneFallback />}>
-            <GalaxyScene sessions={sessions} matches={matches} onSelect={enter} />
-          </Suspense>
+      <>
+        <section className="panel panel-left galaxy-hero">
+          <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
+          <h1>
+            IT 수다 <span className="accent">은하</span>
+          </h1>
+          <p className="hero-desc">
+            모임 하나는 <b>태양계</b>, 그날 나눈 토픽 하나는 <b>행성</b>. 별을 눌러 들어가 보세요.
+          </p>
+          <dl className="stats">
+            <div><dt>SYSTEMS</dt><dd>{pad2(sessions.length)}</dd></div>
+            <div><dt>PLANETS</dt><dd>{pad2(topicCount)}</dd></div>
+            <div><dt>TAGS</dt><dd>{pad2(tags.length)}</dd></div>
+          </dl>
+          {controls}
+          {(query || tag) && (
+            <p className="match-note">{results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}</p>
+          )}
+        </section>
+        <div className="hud-bottom">
+          {viewToggle}
+          <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
         </div>
-        <div className="galaxy-ui">
-          <section className="galaxy-hero">
-            <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
-            <h1>
-              IT 수다 <span className="accent">은하</span>
-            </h1>
-            <p className="hero-desc">
-              모임 하나는 <b>태양계</b>, 그날 나눈 토픽 하나는 <b>행성</b>. 별을 눌러 들어가 보세요.
-            </p>
-            <dl className="stats">
-              <div><dt>SYSTEMS</dt><dd>{pad2(sessions.length)}</dd></div>
-              <div><dt>PLANETS</dt><dd>{pad2(topicCount)}</dd></div>
-              <div><dt>TAGS</dt><dd>{pad2(tags.length)}</dd></div>
-            </dl>
-            {controls}
-            {(query || tag) && (
-              <p className="match-note">
-                {results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}
-              </p>
-            )}
-          </section>
-          <div className="galaxy-bottom">
-            {viewToggle}
-            <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
-          </div>
-        </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="container page">
-      <section className="hero">
+    <section className="panel panel-center">
+      <div className="hero">
         <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
         <h1>
           IT 수다 <span className="accent">은하</span>
         </h1>
         <p className="hero-desc">마주 앉아 나눈 IT 트렌드, 노하우, 그리고 온갖 이야기들을 차곡차곡 기록합니다.</p>
         {viewToggle}
-      </section>
+      </div>
       {controls}
       {results.length > 0 ? (
         <div className="timeline">
@@ -120,6 +105,6 @@ export default function HomePage() {
       ) : (
         <p className="empty">검색 결과가 없어요. 다른 키워드로 찾아보세요.</p>
       )}
-    </div>
+    </section>
   )
 }
