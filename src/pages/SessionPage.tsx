@@ -1,9 +1,10 @@
 import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
+import DepthNav from '../components/DepthNav'
 import Prose from '../components/Prose'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
-import { formatDate, getSession, pad2, sessions } from '../lib/sessions'
+import { formatDate, getSession, pad2 } from '../lib/sessions'
 import NotFoundPage from './NotFoundPage'
 
 /** 태양계 화면: 3D 태양계(뒤 배경 Universe) 위에 오른쪽 패널. */
@@ -12,9 +13,7 @@ export default function SessionPage() {
   const session = slug ? getSession(slug) : undefined
   if (!session) return <NotFoundPage />
 
-  const idx = sessions.indexOf(session)
-  const newer = sessions[idx - 1]
-  const older = sessions[idx + 1]
+  const first = session.topicList[0]
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const system = systemProfile(session)
 
@@ -70,24 +69,12 @@ export default function SessionPage() {
             )
           })}
         </ol>
-
-        <nav className="pager">
-          {older ? (
-            <Link to={`/sessions/${older.slug}`} className="prev">
-              <span className="label">← 이전 태양계</span>
-              <span className="title">{older.title}</span>
-            </Link>
-          ) : (
-            <span />
-          )}
-          {newer && (
-            <Link to={`/sessions/${newer.slug}`} className="next">
-              <span className="label">다음 태양계 →</span>
-              <span className="title">{newer.title}</span>
-            </Link>
-          )}
-        </nav>
       </aside>
+
+      <DepthNav
+        up={{ to: '/', label: '은하로' }}
+        down={first && { to: `/sessions/${session.slug}/${first.index}`, label: `행성 ${pad2(first.index)}로 착륙` }}
+      />
     </>
   )
 }

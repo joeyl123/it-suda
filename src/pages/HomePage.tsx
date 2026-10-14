@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
+import DepthNav from '../components/DepthNav'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
 
@@ -74,6 +75,7 @@ export default function HomePage() {
           )}
         </section>
         <div className="hud-bottom">
+          {sessions[0] && <DepthNav down={{ to: `/sessions/${sessions[0].slug}`, label: '최근 태양계로' }} />}
           {viewToggle}
           <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
         </div>

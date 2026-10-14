@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
+import DepthNav from '../components/DepthNav'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { getSession, pad2 } from '../lib/sessions'
 import NotFoundPage from './NotFoundPage'
@@ -13,8 +14,6 @@ export default function TopicPage() {
   if (!session || !topic) return <NotFoundPage />
 
   const profile = planetProfile(session, topic)
-  const prev = session.topicList[topic.index - 2]
-  const next = session.topicList[topic.index]
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const facts = [
     profile.sea > 0.1 ? '바다가 넓음' : profile.sea < -0.5 ? '물이 거의 없음' : null,
@@ -49,32 +48,9 @@ export default function TopicPage() {
         </p>
         <h1 className="panel-title">{topic.title}</h1>
         {topic.body ? <Prose>{topic.body}</Prose> : <p className="muted">아직 기록된 내용이 없는 행성이에요.</p>}
-
-        <nav className="pager">
-          {prev ? (
-            <Link to={`/sessions/${session.slug}/${prev.index}`} className="prev">
-              <span className="label">← 이전 행성</span>
-              <span className="title">{prev.title}</span>
-            </Link>
-          ) : (
-            <Link to={`/sessions/${session.slug}`} className="prev">
-              <span className="label">← 태양계로</span>
-              <span className="title">{session.title}</span>
-            </Link>
-          )}
-          {next ? (
-            <Link to={`/sessions/${session.slug}/${next.index}`} className="next">
-              <span className="label">다음 행성 →</span>
-              <span className="title">{next.title}</span>
-            </Link>
-          ) : (
-            <Link to={`/sessions/${session.slug}`} className="next">
-              <span className="label">태양계로 →</span>
-              <span className="title">{session.title}</span>
-            </Link>
-          )}
-        </nav>
       </aside>
+
+      <DepthNav up={{ to: `/sessions/${session.slug}`, label: `태양계 No.${no}로` }} />
     </>
   )
 }

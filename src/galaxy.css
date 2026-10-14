@@ -108,6 +108,45 @@
 }
 .hint { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); margin: 0; }
 
+/* ---------- Depth arrows: 위(빠져나오기) · 아래(들어가기)만 ---------- */
+.depth-nav {
+  position: fixed; left: 24px; bottom: 24px; z-index: 12;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: panel-in-up 0.6s 0.5s both;
+}
+.hud-bottom .depth-nav { position: static; flex-direction: row; animation: none; }
+.depth-btn {
+  position: relative;
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.depth-btn:hover { border-color: var(--violet); color: var(--violet); box-shadow: 0 0 16px rgba(184, 152, 234, 0.35); }
+.depth-btn:hover svg { transform: translateY(var(--nudge, 0)); }
+.depth-btn svg { transition: transform 0.2s; }
+.depth-btn:first-child:not(:only-child) { --nudge: -2px; }
+.depth-tip {
+  position: absolute; left: calc(100% + 10px); top: 50%;
+  transform: translate(-4px, -50%);
+  padding: 4px 10px;
+  font: 12px var(--font-mono); white-space: nowrap; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 999px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.depth-btn:hover .depth-tip, .depth-btn:focus-visible .depth-tip { opacity: 1; transform: translate(0, -50%); }
+.hud-bottom .depth-tip { left: 50%; top: auto; bottom: calc(100% + 8px); transform: translate(-50%, 4px); }
+.hud-bottom .depth-btn:hover .depth-tip { transform: translate(-50%, 0); }
+@media (max-width: 899px) {
+  .depth-nav { left: 12px; bottom: calc(44svh + 20px); }
+  .depth-tip { display: none; }
+}
+
 /* ---------- Galaxy intro card ---------- */
 .galaxy-hero .label { margin: 0 0 8px; }
 .galaxy-hero h1 {
