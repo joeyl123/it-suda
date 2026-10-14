@@ -5,6 +5,8 @@ export interface Topic {
   index: number
   title: string
   body: string
+  /** `<!-- seed: 123456 -->` 로 행성 시드를 직접 지정한 경우 */
+  seed?: number
 }
 
 export interface Session {
@@ -12,6 +14,8 @@ export interface Session {
   title: string
   date: string
   number?: number
+  /** 태양계 시드 (frontmatter `seed`) */
+  seed?: number
   tags: string[]
   summary?: string
   location?: string
@@ -38,7 +42,9 @@ function splitTopics(body: string) {
   for (const line of body.split(/\r?\n/)) {
     if (/^\s*(```|~~~)/.test(line)) inFence = !inFence
     const heading = inFence ? null : line.match(/^##\s+(.+)$/)
+    const seedNote = inFence || !topics.length ? null : line.match(/^\s*<!--\s*seed:\s*(\d+)\s*-->\s*$/)
     if (heading) topics.push({ index: topics.length + 1, title: heading[1].trim(), body: '' })
+    else if (seedNote) topics[topics.length - 1].seed = Number(seedNote[1])
     else if (topics.length) topics[topics.length - 1].body += line + '\n'
     else intro.push(line)
   }
@@ -61,6 +67,7 @@ function toSession(path: string, raw: string): Session {
     title: meta.title ?? slug,
     date,
     number: meta.number,
+    seed: typeof meta.seed === 'number' ? meta.seed : undefined,
     tags: Array.isArray(meta.tags) ? meta.tags.map(String) : [],
     summary: meta.summary,
     location: meta.location,

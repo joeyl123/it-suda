@@ -1,17 +1,28 @@
-import { lazy, Suspense, useMemo, type CSSProperties } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { lazy, Suspense, useMemo, useState, type CSSProperties } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
 import SceneFallback from '../components/SceneFallback'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
+import { DIVE_MS, prefersReducedMotion, useZoomNavigate } from '../lib/zoom'
 
 const GalaxyScene = lazy(() => import('../three/GalaxyScene'))
 const webgl = hasWebGL()
 
 export default function HomePage() {
   const [params, setParams] = useSearchParams()
-  const navigate = useNavigate()
+  const go = useZoomNavigate()
+  const [diving, setDiving] = useState<string | null>(null)
+
+  // 별을 고르면: 카메라가 그 별로 파고든 뒤 → 태양계 페이지로 줌 전환
+  const enter = (slug: string) => {
+    if (diving) return
+    if (prefersReducedMotion()) return go(`/sessions/${slug}`, 'in')
+    setDiving(slug)
+    void import('../three/SystemScene')
+    window.setTimeout(() => go(`/sessions/${slug}`, 'in'), DIVE_MS)
+  }
   const query = params.get('q') ?? ''
   const tag = params.get('tag')
   const view = !webgl || params.get('view') === 'list' ? 'list' : 'galaxy'
@@ -57,10 +68,10 @@ export default function HomePage() {
 
   if (view === 'galaxy') {
     return (
-      <div className="galaxy">
+      <div className={`galaxy${diving ? ' is-diving' : ''}`}>
         <div className="stage stage-full">
           <Suspense fallback={<SceneFallback />}>
-            <GalaxyScene sessions={sessions} matches={matches} onSelect={(slug) => navigate(`/sessions/${slug}`)} />
+            <GalaxyScene sessions={sessions} matches={matches} focus={diving} onSelect={enter} />
           </Suspense>
         </div>
         <div className="galaxy-ui">

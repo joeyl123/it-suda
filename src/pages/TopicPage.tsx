@@ -1,8 +1,9 @@
 import { lazy, Suspense, type CSSProperties } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
 import SceneFallback from '../components/SceneFallback'
-import { planetProfile, starCorona } from '../lib/cosmos'
+import ZoomLink from '../components/ZoomLink'
+import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
 import { getSession, pad2 } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
 import NotFoundPage from './NotFoundPage'
@@ -17,29 +18,40 @@ export default function TopicPage() {
   if (!session || !topic) return <NotFoundPage />
 
   const profile = planetProfile(session, topic)
+  const system = systemProfile(session)
   const prev = session.topicList[topic.index - 2]
   const next = session.topicList[topic.index]
   const no = session.number !== undefined ? pad2(session.number) : '··'
+  const facts = [
+    profile.sea > 0.1 ? '바다가 넓음' : profile.sea < -0.5 ? '물이 거의 없음' : null,
+    profile.ring ? '고리 있음' : null,
+    profile.moons ? `위성 ${profile.moons}개` : null,
+    profile.clouds > 0.8 ? '구름 많음' : null,
+  ].filter(Boolean)
 
   return (
-    <div className="split" style={{ '--glow': profile.biome.glow, '--land': profile.biome.land } as CSSProperties}>
+    <div className="split" style={{ '--glow': profile.biome.glow, '--land': planetColors(profile).land } as CSSProperties}>
       <div className="stage">
         {webgl && (
           <Suspense fallback={<SceneFallback />}>
-            <PlanetScene key={profile.key} profile={profile} sunColor={starCorona(session)} />
+            <PlanetScene key={profile.seed} profile={profile} system={system} />
           </Suspense>
         )}
         <div className="stage-tag biome-tag">
           <span className="label">{profile.biome.name}</span>
           <span>{profile.biome.blurb}</span>
+          <span className="stage-sub">
+            SEED {profile.seed}
+            {facts.length > 0 && ` · ${facts.join(' · ')}`}
+          </span>
         </div>
       </div>
 
       <aside className="panel">
         <nav className="crumbs">
-          <Link to="/">은하</Link>
+          <ZoomLink to="/" dir="out">은하</ZoomLink>
           <span>/</span>
-          <Link to={`/sessions/${session.slug}`}>No.{no}</Link>
+          <ZoomLink to={`/sessions/${session.slug}`} dir="out">No.{no}</ZoomLink>
           <span>/</span>
           <span aria-current="page">행성 {pad2(topic.index)}</span>
         </nav>
@@ -52,26 +64,26 @@ export default function TopicPage() {
 
         <nav className="pager">
           {prev ? (
-            <Link to={`/sessions/${session.slug}/${prev.index}`} className="prev">
+            <ZoomLink to={`/sessions/${session.slug}/${prev.index}`} dir="side" className="prev">
               <span className="label">← 이전 행성</span>
               <span className="title">{prev.title}</span>
-            </Link>
+            </ZoomLink>
           ) : (
-            <Link to={`/sessions/${session.slug}`} className="prev">
+            <ZoomLink to={`/sessions/${session.slug}`} dir="out" className="prev">
               <span className="label">← 태양계로</span>
               <span className="title">{session.title}</span>
-            </Link>
+            </ZoomLink>
           )}
           {next ? (
-            <Link to={`/sessions/${session.slug}/${next.index}`} className="next">
+            <ZoomLink to={`/sessions/${session.slug}/${next.index}`} dir="side" className="next">
               <span className="label">다음 행성 →</span>
               <span className="title">{next.title}</span>
-            </Link>
+            </ZoomLink>
           ) : (
-            <Link to={`/sessions/${session.slug}`} className="next">
+            <ZoomLink to={`/sessions/${session.slug}`} dir="out" className="next">
               <span className="label">태양계로 →</span>
               <span className="title">{session.title}</span>
-            </Link>
+            </ZoomLink>
           )}
         </nav>
       </aside>

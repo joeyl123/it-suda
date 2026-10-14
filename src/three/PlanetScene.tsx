@@ -1,34 +1,37 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { seeded, type PlanetProfile } from '../lib/cosmos'
+import { seeded, type PlanetProfile, type SystemProfile } from '../lib/cosmos'
 import { Glow, IsoStage, OrbitRing } from './common'
 import Planet from './Planet'
 
+const MOON_COLORS = ['#c9c4bc', '#a8a29a', '#d8cbb0', '#9aa3ad']
+
 /** 토픽 하나 = 행성 하나의 생태계. 가까이서 본 모습. */
-export default function PlanetScene({ profile, sunColor }: { profile: PlanetProfile; sunColor: string }) {
+export default function PlanetScene({ profile, system }: { profile: PlanetProfile; system: SystemProfile }) {
   const moons = useMemo(() => {
-    const rand = seeded(profile.key + '/moons')
+    const rand = seeded(profile.seed + '/moons')
     return Array.from({ length: profile.moons }, (_, i) => ({
       orbit: 2.25 + i * 0.3 + rand() * 0.15,
-      size: 0.1 + rand() * 0.1,
+      size: 0.08 + rand() * 0.12,
       speed: 0.5 + rand() * 0.4,
       phase: rand() * Math.PI * 2,
       tilt: (rand() - 0.5) * 0.8,
+      color: MOON_COLORS[Math.floor(rand() * MOON_COLORS.length)],
     }))
   }, [profile])
 
   return (
-    <IsoStage extent={profile.ring || profile.moons ? 2.5 : 1.7}>
-      <Planet profile={profile} detail={22} propCount={260} spin={0.08} />
+    <IsoStage extent={profile.ring || profile.moons ? 2.5 : 1.75}>
+      <Planet profile={profile} detail={24} propBudget={320} cloudBudget={46} />
       {moons.map((m, i) => (
-        <Moon key={i} {...m} color={profile.biome.peak} />
+        <Moon key={i} {...m} />
       ))}
       <Satellites color={profile.biome.glow} />
       {/* 멀리 보이는 이 태양계의 항성 */}
       <group position={[-14, 6, -18]}>
-        <Glow color="#f2dc7e" scale={5} />
-        <Glow color={sunColor} scale={12} opacity={0.5} />
+        <Glow color={system.star.core} scale={5 * system.star.size} />
+        <Glow color={system.corona} scale={12} opacity={0.5} />
       </group>
     </IsoStage>
   )

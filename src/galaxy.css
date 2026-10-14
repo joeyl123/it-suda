@@ -41,8 +41,8 @@
 }
 .galaxy-hero .label { margin: 0 0 8px; }
 .galaxy-hero h1 {
-  font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(32px, 4vw, 44px); line-height: 1.15; letter-spacing: -0.03em;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(32px, 4vw, 44px); line-height: 1.15; letter-spacing: 0.01em;
   margin: 0 0 12px;
 }
 .galaxy-hero .accent, .hero .accent { color: var(--apricot); }
@@ -91,7 +91,7 @@
 .sys-label.is-hover { border-color: var(--corona); background: var(--panel); }
 .sys-label.is-dim { opacity: 0.25; }
 .sys-no { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--corona); }
-.sys-title { font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
+.sys-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.01em; }
 .sys-meta { font: 11px var(--font-mono); color: var(--ink-soft); }
 
 .planet-label {
@@ -134,8 +134,8 @@
 .crumbs a:hover { color: var(--violet); }
 .crumbs [aria-current] { color: var(--ink); }
 .panel-title {
-  font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(28px, 4vw, 36px); line-height: 1.25; letter-spacing: -0.03em;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(28px, 4vw, 36px); line-height: 1.25; letter-spacing: 0.01em;
   margin: 12px 0;
 }
 .panel-summary { color: var(--ink-soft); margin: 0 0 16px; }
@@ -169,3 +169,40 @@
   font: 500 12px var(--font-mono); letter-spacing: 0.06em; color: var(--glow);
 }
 .panel .pager { margin-top: 56px; }
+
+/* ---------- Zoom transitions (design.md §6) ---------- */
+/* 1) 장면 안: 대상 쪽으로 카메라가 파고드는 동안 UI는 물러난다 */
+.label-layer > * { transition: opacity 0.3s; }
+.label-layer.is-leaving > * { opacity: 0; pointer-events: none; }
+.galaxy-ui, .panel { transition: opacity 0.4s, transform 0.4s; }
+.galaxy.is-diving .galaxy-ui { opacity: 0; transform: translateX(-24px); }
+.split.is-diving .panel { opacity: 0.25; transform: translateX(24px); }
+
+/* 2) 페이지 교체: View Transitions API. 헤더는 제자리, 나머지는 줌 */
+.header { view-transition-name: site-header; }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.25, 1);
+  animation-fill-mode: both;
+}
+html[data-zoom='in']::view-transition-old(root) { animation-name: vt-in-old; }
+html[data-zoom='in']::view-transition-new(root) { animation-name: vt-in-new; }
+html[data-zoom='out']::view-transition-old(root) { animation-name: vt-out-old; }
+html[data-zoom='out']::view-transition-new(root) { animation-name: vt-out-new; }
+html[data-zoom='side']::view-transition-old(root) { animation-name: vt-side-old; animation-duration: 0.45s; }
+html[data-zoom='side']::view-transition-new(root) { animation-name: vt-side-new; animation-duration: 0.45s; }
+
+@keyframes vt-in-old { to { transform: scale(2.6); opacity: 0; filter: blur(8px) brightness(1.6); } }
+@keyframes vt-in-new { from { transform: scale(0.55); opacity: 0; } }
+@keyframes vt-out-old { to { transform: scale(0.45); opacity: 0; } }
+@keyframes vt-out-new { from { transform: scale(2.2); opacity: 0; filter: blur(8px); } }
+@keyframes vt-side-old { to { transform: translateX(-4%); opacity: 0; } }
+@keyframes vt-side-new { from { transform: translateX(4%); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+
+.stage-tag { display: flex; flex-direction: column; gap: 2px; }
+.stage-sub { font: 11px var(--font-mono); letter-spacing: 0.06em; color: var(--ink-soft); }

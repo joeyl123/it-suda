@@ -4,6 +4,7 @@
 title: 회차 제목
 date: 2026-01-01
 number: 1                  # 회차 (선택)
+seed: 123456               # 태양계 시드 (선택, `npm run new`가 자동으로 넣어 줘요)
 location: 강남역 스터디카페  # 장소 (선택)
 tags: [AI, 개발]
 summary: 카드와 상단에 보이는 한 줄 요약

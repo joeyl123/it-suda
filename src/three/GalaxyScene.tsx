@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { planetProfile, seeded, starCorona } from '../lib/cosmos'
+import { planetColors, planetProfile, seeded, systemProfile } from '../lib/cosmos'
 import { formatDate, pad2, type Session } from '../lib/sessions'
 import { Anchor, Glow, IsoStage, OrbitRing, useHoverCursor, useLabelRegistry, type LabelRegistry } from './common'
 
@@ -18,20 +18,22 @@ function systemPosition(i: number): [number, number, number] {
 interface Props {
   sessions: Session[]
   matches: Set<string>
+  /** 이 태양계로 파고드는 중 (전환 직전) */
+  focus: string | null
   onSelect: (slug: string) => void
 }
 
-export default function GalaxyScene({ sessions, matches, onSelect }: Props) {
+export default function GalaxyScene({ sessions, matches, focus, onSelect }: Props) {
   const ordered = useMemo(() => [...sessions].sort((a, b) => a.date.localeCompare(b.date)), [sessions])
   const radius = Math.max(14, 4 + ordered.length * 2.6 + 5)
   const [hovered, setHovered] = useState<string | null>(null)
-  useHoverCursor(hovered !== null)
+  useHoverCursor(hovered !== null && !focus)
   const { registry, bind } = useLabelRegistry()
   const hover = (slug: string) => (on: boolean) => setHovered((h) => (on ? slug : h === slug ? null : h))
 
   return (
     <>
-      <IsoStage extent={radius * 0.8} pan autoRotate={hovered === null} offsetX={460}>
+      <IsoStage extent={radius * 0.8} pan autoRotate={hovered === null} offsetX={460} focus={focus} registry={registry}>
         <SpiralArms radius={radius} />
         <Glow color="#f2dc7e" scale={9} opacity={0.9} />
         <Glow color="#b898ea" scale={18} opacity={0.35} />
@@ -42,21 +44,21 @@ export default function GalaxyScene({ sessions, matches, onSelect }: Props) {
             index={i}
             position={systemPosition(i)}
             dim={!matches.has(s.slug)}
-            hovered={hovered === s.slug}
+            hovered={hovered === s.slug || focus === s.slug}
             registry={registry}
             onHover={hover(s.slug)}
             onSelect={() => onSelect(s.slug)}
           />
         ))}
       </IsoStage>
-      <div className="label-layer">
+      <div className={`label-layer${focus ? ' is-leaving' : ''}`}>
         {ordered.map((s, i) => (
           <button
             key={s.slug}
             ref={bind(s.slug)}
             type="button"
             className={`sys-label${hovered === s.slug ? ' is-hover' : ''}${matches.has(s.slug) ? '' : ' is-dim'}`}
-            style={{ '--corona': starCorona(s, i + 1) } as CSSProperties}
+            style={{ '--corona': systemProfile(s, i + 1).corona } as CSSProperties}
             onClick={() => onSelect(s.slug)}
             onPointerEnter={() => hover(s.slug)(true)}
             onPointerLeave={() => hover(s.slug)(false)}
@@ -124,15 +126,15 @@ interface SystemProps {
 function StarSystem({ session, index, position, dim, hovered, registry, onHover, onSelect }: SystemProps) {
   const group = useRef<THREE.Group>(null)
   const planetRefs = useRef<(THREE.Mesh | null)[]>([])
-  const corona = starCorona(session, index + 1)
-  const planets = useMemo(
-    () =>
-      session.topicList.map((t, i) => {
-        const profile = planetProfile(session, t)
-        return { profile, orbit: 1 + i * 0.42, speed: 0.9 / (1 + i * 0.6), phase: seeded(profile.key)() * Math.PI * 2 }
-      }),
-    [session],
-  )
+  const { star, corona } = systemProfile(session, index + 1)
+  const planets = useMemo(() => {
+    let orbit = 0.75
+    return session.topicList.map((t, i) => {
+      const profile = planetProfile(session, t)
+      orbit += 0.25 + profile.size * 0.18
+      return { profile, color: planetColors(profile).land, orbit, speed: 0.9 / (1 + i * 0.6), phase: seeded(profile.seed)() * Math.PI * 2 }
+    })
+  }, [session])
   const reach = (planets.at(-1)?.orbit ?? 0.8) + 0.3
 
   useFrame(({ clock }, dt) => {
@@ -151,17 +153,17 @@ function StarSystem({ session, index, position, dim, hovered, registry, onHover,
   return (
     <group ref={group} position={position}>
       <mesh>
-        <sphereGeometry args={[0.36, 24, 24]} />
-        <meshBasicMaterial color={dim ? '#5e566e' : '#fff6d8'} />
+        <sphereGeometry args={[0.34 * star.size, 24, 24]} />
+        <meshBasicMaterial color={dim ? '#5e566e' : star.core} />
       </mesh>
-      <Glow color="#f2dc7e" scale={1.6} opacity={dim ? 0.2 : 0.9} />
+      <Glow color={star.core} scale={1.7 * star.size} opacity={dim ? 0.2 : 0.9} />
       <Glow color={corona} scale={hovered ? 4.2 : 3} opacity={dim ? 0.12 : 0.7} />
       {planets.map((p, i) => (
-        <group key={p.profile.key}>
+        <group key={p.profile.seed + '-' + i}>
           <OrbitRing radius={p.orbit} color={corona} opacity={dim ? 0.06 : 0.25} width={0.008} />
           <mesh ref={(m) => void (planetRefs.current[i] = m)}>
-            <icosahedronGeometry args={[0.1 + p.profile.size * 0.06, 1]} />
-            <meshStandardMaterial color={p.profile.biome.land} flatShading emissive={p.profile.biome.land} emissiveIntensity={0.25} />
+            <icosahedronGeometry args={[0.07 + p.profile.size * 0.07, 1]} />
+            <meshStandardMaterial color={p.color} flatShading emissive={p.color} emissiveIntensity={0.25} />
           </mesh>
         </group>
       ))}

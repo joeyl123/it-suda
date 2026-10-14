@@ -1,61 +1,74 @@
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { planetProfile, seeded, starCorona } from '../lib/cosmos'
-import { pad2, type Session } from '../lib/sessions'
+import { planetProfile, seeded, systemProfile, type PlanetProfile, type StarType } from '../lib/cosmos'
+import { pad2, type Session, type Topic } from '../lib/sessions'
 import { Anchor, Glow, IsoStage, OrbitRing, useHoverCursor, useLabelRegistry, type LabelRegistry } from './common'
 import Planet from './Planet'
 
+const SCALE = 1.5
+
 interface Props {
   session: Session
+  /** 이 토픽 번호의 행성으로 파고드는 중 (전환 직전) */
+  focus: number | null
   onSelect: (topicIndex: number) => void
 }
 
-export default function SystemScene({ session, onSelect }: Props) {
-  const corona = starCorona(session)
-  const planets = useMemo(
-    () =>
-      session.topicList.map((topic, i) => {
-        const profile = planetProfile(session, topic)
-        return {
-          topic,
-          profile,
-          orbit: 3.2 + i * 2.1,
-          speed: 0.32 / (1 + i * 0.45),
-          phase: seeded(profile.key + '/phase')() * Math.PI * 2,
-        }
-      }),
-    [session],
-  )
+export default function SystemScene({ session, focus, onSelect }: Props) {
+  const { star, corona } = systemProfile(session)
+  const planets = useMemo(() => {
+    // 행성 크기가 제각각이라 궤도 간격도 크기에 맞춰 벌린다
+    let orbit = 1.6 + star.size * 1.2
+    let prev = 0
+    return session.topicList.map((topic, i) => {
+      const profile = planetProfile(session, topic)
+      const r = profile.size * SCALE * (profile.ring ? 2.1 : 1.15)
+      orbit += prev + r + 0.6
+      prev = r
+      return {
+        id: `p${topic.index}`,
+        topic,
+        profile,
+        orbit,
+        speed: 0.32 / (1 + i * 0.45),
+        phase: seeded(profile.seed + '/phase')() * Math.PI * 2,
+      }
+    })
+  }, [session, star.size])
   const extent = (planets.at(-1)?.orbit ?? 2) + 1.6
   const [hovered, setHovered] = useState<number | null>(null)
-  useHoverCursor(hovered !== null)
+  useHoverCursor(hovered !== null && focus === null)
   const { registry, bind } = useLabelRegistry()
   const hover = (n: number) => (on: boolean) => setHovered((h) => (on ? n : h === n ? null : h))
+  const focusId = focus !== null ? `p${focus}` : null
 
   return (
     <>
-      <IsoStage extent={extent}>
-        <Sun corona={corona} />
-        {planets.map((p) => (
-          <group key={p.profile.key}>
-            <OrbitRing radius={p.orbit} color={hovered === p.topic.index ? p.profile.biome.glow : corona} opacity={hovered === p.topic.index ? 0.6 : 0.22} />
-            <OrbitingPlanet
-              {...p}
-              registry={registry}
-              paused={hovered !== null}
-              hovered={hovered === p.topic.index}
-              onHover={hover(p.topic.index)}
-              onSelect={() => onSelect(p.topic.index)}
-            />
-          </group>
-        ))}
+      <IsoStage extent={extent} focus={focusId} registry={registry}>
+        <Sun star={star} corona={corona} />
+        {planets.map((p) => {
+          const lit = hovered === p.topic.index || focus === p.topic.index
+          return (
+            <group key={p.id}>
+              <OrbitRing radius={p.orbit} color={lit ? p.profile.biome.glow : corona} opacity={lit ? 0.6 : 0.22} />
+              <OrbitingPlanet
+                {...p}
+                registry={registry}
+                paused={hovered !== null || focus !== null}
+                hovered={lit}
+                onHover={hover(p.topic.index)}
+                onSelect={() => onSelect(p.topic.index)}
+              />
+            </group>
+          )
+        })}
       </IsoStage>
-      <div className="label-layer">
-        {planets.map(({ topic, profile }) => (
+      <div className={`label-layer${focus !== null ? ' is-leaving' : ''}`}>
+        {planets.map(({ id, topic, profile }) => (
           <button
-            key={profile.key}
-            ref={bind(profile.key)}
+            key={id}
+            ref={bind(id)}
             type="button"
             className={`planet-label${hovered === topic.index ? ' is-hover' : ''}`}
             style={{ '--glow': profile.biome.glow } as CSSProperties}
@@ -72,7 +85,7 @@ export default function SystemScene({ session, onSelect }: Props) {
   )
 }
 
-function Sun({ corona }: { corona: string }) {
+function Sun({ star, corona }: { star: StarType; corona: string }) {
   const ref = useRef<THREE.Group>(null)
   useFrame(({ clock }) => {
     if (ref.current) ref.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 1.4) * 0.03)
@@ -80,19 +93,20 @@ function Sun({ corona }: { corona: string }) {
   return (
     <group ref={ref}>
       <mesh>
-        <icosahedronGeometry args={[1.1, 3]} />
-        <meshBasicMaterial color="#fff6d8" />
+        <icosahedronGeometry args={[1.1 * star.size, 3]} />
+        <meshBasicMaterial color={star.core} />
       </mesh>
-      <Glow color="#f2dc7e" scale={4.5} />
-      <Glow color={corona} scale={9} opacity={0.6} />
-      <pointLight intensity={30} distance={40} decay={1.4} color="#ffe9c4" />
+      <Glow color={star.core} scale={4.5 * star.size} />
+      <Glow color={corona} scale={9 * star.size} opacity={0.6} />
+      <pointLight intensity={30} distance={60} decay={1.4} color={star.core} />
     </group>
   )
 }
 
 type OrbitingProps = {
-  topic: Session['topicList'][number]
-  profile: ReturnType<typeof planetProfile>
+  id: string
+  topic: Topic
+  profile: PlanetProfile
   orbit: number
   speed: number
   phase: number
@@ -103,25 +117,27 @@ type OrbitingProps = {
   onSelect: () => void
 }
 
-function OrbitingPlanet({ profile, orbit, speed, phase, registry, paused, hovered, onHover, onSelect }: OrbitingProps) {
+function OrbitingPlanet({ id, profile, orbit, speed, phase, registry, paused, hovered, onHover, onSelect }: OrbitingProps) {
   const ref = useRef<THREE.Group>(null)
   const angle = useRef(phase)
+  const size = profile.size * SCALE
 
   useFrame((_, dt) => {
     const g = ref.current
     if (!g) return
     if (!paused) angle.current += dt * speed
     g.position.set(Math.cos(angle.current) * orbit, 0, Math.sin(angle.current) * orbit)
-    g.scale.setScalar(THREE.MathUtils.damp(g.scale.x, profile.size * 1.5 * (hovered ? 1.25 : 1), 10, dt))
+    g.scale.setScalar(THREE.MathUtils.damp(g.scale.x, size * (hovered ? 1.25 : 1), 10, dt))
   })
 
   return (
-    <group ref={ref} scale={profile.size * 1.5}>
+    <group ref={ref} scale={size}>
       <Planet
         profile={profile}
-        detail={7}
-        propCount={45}
-        spin={0.4}
+        detail={8}
+        propBudget={55}
+        cloudBudget={12}
+        spin={profile.spin * 4}
         onPointerOver={(e) => {
           e.stopPropagation()
           onHover(true)
@@ -133,7 +149,7 @@ function OrbitingPlanet({ profile, orbit, speed, phase, registry, paused, hovere
         }}
       />
       {hovered && <Glow color={profile.biome.glow} scale={4.2} opacity={0.5} />}
-      <Anchor id={profile.key} registry={registry} offsetY={52} />
+      <Anchor id={id} registry={registry} offsetY={30 + size * 20} />
     </group>
   )
 }
