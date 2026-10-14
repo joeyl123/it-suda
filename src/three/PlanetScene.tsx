@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { planetProfile, seeded, systemProfile } from '../lib/cosmos'
@@ -31,7 +31,7 @@ export default function PlanetScene({ session, topic, interactive }: SceneProps 
   }, [profile])
   const extras = useMemo(() => {
     const r = seeded(profile.seed + '/visitors')
-    return { ufo: r() < 0.5, satellite: r() < 0.75 }
+    return { ufo: r() < 0.15, satellite: r() < 0.35 }
   }, [profile])
   // 이 태양계의 항성은 실제로 있는 방향(행성 → 태양)에 멀리 보인다
   const sunAt = useMemo(() => {
@@ -41,15 +41,6 @@ export default function PlanetScene({ session, topic, interactive }: SceneProps 
 
   const [launches, setLaunches] = useState<Launch[]>([])
   const launch = (dir: THREE.Vector3) => setLaunches((l) => [...l.slice(-5), { id: launchId++, dir: dir.clone().normalize() }])
-
-  // 가끔 저절로 발사
-  useEffect(() => {
-    if (!interactive) return
-    const t = window.setInterval(() => {
-      if (Math.random() < 0.5) launch(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5))
-    }, 9000)
-    return () => window.clearInterval(t)
-  }, [interactive])
 
   return (
     <>

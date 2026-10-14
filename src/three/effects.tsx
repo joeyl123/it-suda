@@ -55,7 +55,7 @@ export function rockGeometry(seed: string, radius: number, detail = 1) {
 
 // ---------------------------------------------------------------- 별똥별 (모든 장면)
 
-export function ShootingStars({ count = 3 }: { count?: number }) {
+export function ShootingStars({ count = 1 }: { count?: number }) {
   const { camera } = useThree()
   const items = useMemo(
     () =>
@@ -68,7 +68,7 @@ export function ShootingStars({ count = 3 }: { count?: number }) {
         line.visible = false
         const head = glowSprite('#fff4dc')
         head.visible = false
-        return { line, head, wait: 1.5 + i * 2.5 + rnd() * 3, t: 0, life: 1, start: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0, len: 0 }
+        return { line, head, wait: 6 + i * 8 + rnd() * 8, t: 0, life: 1, start: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0, len: 0 }
       }),
     [count],
   )
@@ -97,7 +97,7 @@ export function ShootingStars({ count = 3 }: { count?: number }) {
       const k = m.t / m.life
       if (k >= 1) {
         m.line.visible = m.head.visible = false
-        m.wait = 3 + rnd() * 7
+        m.wait = 10 + rnd() * 15
         continue
       }
       tmp.h.copy(m.start).addScaledVector(m.dir, (m.speed * m.t) / zoom)
@@ -259,7 +259,7 @@ function UfoModel({ beam }: { beam: React.RefObject<THREE.Mesh | null> }) {
 export function Ufo({ mode, span = 12, scale = 0.6 }: { mode: 'flyby' | 'orbit'; span?: number; scale?: number }) {
   const group = useRef<THREE.Group>(null)
   const beam = useRef<THREE.Mesh>(null)
-  const st = useRef({ t: 0, wait: mode === 'flyby' ? 8 + rnd() * 10 : 0, from: new THREE.Vector3(), to: new THREE.Vector3(), hold: 0, beamUntil: 0, angle: rnd() * 6 })
+  const st = useRef({ t: 0, wait: mode === 'flyby' ? 40 + rnd() * 40 : 0, from: new THREE.Vector3(), to: new THREE.Vector3(), hold: 0, beamUntil: 0, angle: rnd() * 6 })
   const q = useMemo(() => new THREE.Quaternion(), [])
   const down = useMemo(() => new THREE.Vector3(0, -1, 0), [])
 
@@ -308,7 +308,7 @@ export function Ufo({ mode, span = 12, scale = 0.6 }: { mode: 'flyby' | 'orbit';
     g.visible = true
     s.t += dt / 11
     if (s.t >= 1) {
-      s.wait = 25 + rnd() * 25
+      s.wait = 90 + rnd() * 90
       return
     }
     g.position.lerpVectors(s.from, s.to, s.t)
@@ -327,7 +327,7 @@ export function Ufo({ mode, span = 12, scale = 0.6 }: { mode: 'flyby' | 'orbit';
 
 export function Astronaut({ span = 14 }: { span?: number }) {
   const group = useRef<THREE.Group>(null)
-  const st = useRef({ t: 0, wait: 14 + rnd() * 10, spin: 0, from: new THREE.Vector3(), to: new THREE.Vector3() })
+  const st = useRef({ t: 0, wait: 75 + rnd() * 60, spin: 0, from: new THREE.Vector3(), to: new THREE.Vector3() })
   const poke = () => {
     st.current.spin = 1.2
     cosmicToast(pickLine(ASTRONAUT_LINES))
@@ -350,7 +350,7 @@ export function Astronaut({ span = 14 }: { span?: number }) {
     g.visible = true
     s.t += dt / 45
     if (s.t >= 1) {
-      s.wait = 40 + rnd() * 30
+      s.wait = 150 + rnd() * 120
       return
     }
     g.position.lerpVectors(s.from, s.to, s.t)
@@ -403,7 +403,7 @@ export function SpaceWhale({ radius = 16 }: { radius?: number }) {
   const group = useRef<THREE.Group>(null)
   const tail = useRef<THREE.Group>(null)
   const dust = useRef<THREE.Points>(null)
-  const st = useRef({ a: rnd() * 6, spout: 0 })
+  const st = useRef({ a: rnd() * 6, spout: 0, wait: 50 + rnd() * 40, swim: 0 })
   const look = useMemo(() => new THREE.Vector3(), [])
   const dustGeo = useMemo(() => {
     const g = new THREE.BufferGeometry()
@@ -421,6 +421,18 @@ export function SpaceWhale({ radius = 16 }: { radius?: number }) {
     const g = group.current
     const s = st.current
     if (!g) return
+    if (s.wait > 0) {
+      s.wait -= dt
+      g.visible = false
+      if (s.wait <= 0) s.swim = 40
+      return
+    }
+    s.swim -= dt
+    if (s.swim <= 0) {
+      s.wait = 180 + rnd() * 120
+      return
+    }
+    g.visible = true
     s.a += dt * 0.035
     const y = 3.5 + Math.sin(s.a * 3) * 0.8
     g.position.set(Math.cos(s.a) * radius, y, Math.sin(s.a) * radius)
@@ -520,7 +532,7 @@ function Burst({ at, color, onDone }: { at: THREE.Vector3; color: string; onDone
 function DriftingRock({ span, index }: { span: number; index: number }) {
   const ref = useRef<THREE.Mesh>(null)
   const geo = useMemo(() => rockGeometry('drift' + index, 0.35 + rnd() * 0.35), [index])
-  const st = useRef({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), spin: new THREE.Vector3(), alive: false, wait: index * 4 + rnd() * 4 })
+  const st = useRef({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), spin: new THREE.Vector3(), alive: false, wait: 20 + index * 30 + rnd() * 20 })
   const [burst, setBurst] = useState<THREE.Vector3 | null>(null)
 
   const respawn = () => {
@@ -535,7 +547,7 @@ function DriftingRock({ span, index }: { span: number; index: number }) {
   const poke = () => {
     const s = st.current
     s.alive = false
-    s.wait = 6 + rnd() * 6
+    s.wait = 30 + rnd() * 30
     asteroidScore += 100
     setBurst(s.pos.clone())
     cosmicToast(`💥 소행성 격파! +100 (총 ${asteroidScore}점)`)
@@ -558,7 +570,7 @@ function DriftingRock({ span, index }: { span: number; index: number }) {
     m.rotation.y += s.spin.y * dt
     if (s.pos.length() > span * 1.15) {
       s.alive = false
-      s.wait = 2 + rnd() * 6
+      s.wait = 20 + rnd() * 30
     }
   })
 
@@ -572,7 +584,7 @@ function DriftingRock({ span, index }: { span: number; index: number }) {
   )
 }
 
-export function DriftingAsteroids({ count = 3, span = 16 }: { count?: number; span?: number }) {
+export function DriftingAsteroids({ count = 1, span = 16 }: { count?: number; span?: number }) {
   return (
     <>
       {Array.from({ length: count }, (_, i) => (

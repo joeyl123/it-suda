@@ -87,8 +87,8 @@ export function systemLayout(session: Session): SystemLayout {
     return { id: `p${topic.index}`, topic, profile, orbit, size, speed: 0.32 / (1 + i * 0.45), phase: seeded(profile.seed + '/phase')() * Math.PI * 2 }
   })
   const extras = seeded(seed + '/extras')
-  const belt = extras() < 0.65
-  const comet = extras() < 0.55
+  const belt = extras() < 0.4
+  const comet = extras() < 0.3
   const last = planets.at(-1)?.orbit ?? 2
   const layout = { planets, belt, comet, last, extent: last + (belt ? 2.6 : 1.6) }
   layoutCache.set(session.slug, layout)
