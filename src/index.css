@@ -11,9 +11,9 @@
   --butter: rgba(242, 220, 126, 0.22);
   --panel: rgba(22, 18, 34, 0.78);
 
-  --font-display: 'Orbitron', 'Orbit', 'Pretendard Variable', sans-serif; /* 영문·숫자 Orbitron, 한글 Orbit */
-  --font-body: 'Orbit', 'Pretendard Variable', Pretendard, system-ui, sans-serif; /* 본문도 우주 폰트. Pretendard는 Orbit 로딩 전 대체용 */
-  --font-mono: 'Space Mono', 'Orbit', ui-monospace, monospace;
+  --font-display: 'Audiowide', 'Wanted Sans Variable', 'Wanted Sans', system-ui, sans-serif; /* 영문·숫자 Audiowide, 한글 Wanted Sans */
+  --font-body: 'Wanted Sans Variable', 'Wanted Sans', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', 'Wanted Sans Variable', ui-monospace, monospace;
   color-scheme: dark;
 }
 

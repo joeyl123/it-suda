@@ -63,9 +63,9 @@
 
 | 역할 | 폰트 | 비고 |
 | --- | --- | --- |
-| Display (제목) | **Orbitron 700** + **Orbit** | 영문·숫자는 Orbitron(우주선 계기판 느낌), 한글은 Orbit(같은 결의 한글 SF 폰트)로 자동 대체. 자간 `0.01em` |
-| Body (본문) | **Orbit** | 본문·설명·라벨·버튼·입력창까지 모든 글자. Orbit은 한글+영문을 다 갖고 있다. Pretendard는 로딩 전 대체용. 17px / 1.7~1.8 |
-| Mono (메타) | **Space Mono** + **Orbit** | 날짜, 번호, 시드, 태그, 라벨. 대문자 라벨 자간 `0.08em` |
+| Display (제목) | **Audiowide** + **Wanted Sans** | 아케이드 SF. 영문·숫자는 Audiowide, 한글은 Wanted Sans로 자동 대체. weight 700, 자간 `0.01em` |
+| Body (본문) | **Wanted Sans** (Variable) | 본문·설명·라벨·버튼·입력창까지. 한글+영문 모두 갖춘 깔끔한 고딕. 17px / 1.7~1.8 |
+| Mono (메타) | **Share Tech Mono** + **Wanted Sans** | 날짜, 번호, 시드, 태그, 라벨. 대문자 라벨 자간 `0.08em` |
 
 - 버튼·입력창은 브라우저 기본 폰트를 쓰므로 `font: inherit` 이 전역으로 걸려 있다. 지우지 말 것.
 - `--font-display`, `--font-mono` 스택 순서(영문 폰트 → 한글 폰트)를 바꾸지 말 것. 한글이 영문 폰트에 없어서 다음 폰트로 넘어가는 원리를 이용한다.
