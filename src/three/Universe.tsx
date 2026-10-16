@@ -21,7 +21,7 @@ import { formatDate, pad2, searchSessions } from '../lib/sessions'
 import { prefersReducedMotion } from '../lib/zoom'
 import { stepQuality, useQuality } from '../lib/quality'
 import { useSheet, type SheetState } from '../lib/ui'
-import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, useHoverCursor } from './common'
+import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, syncAnchors, useHoverCursor } from './common'
 import { ShootingStars, Warp } from './effects'
 import GalaxyScene from './GalaxyScene'
 import PlanetScene from './PlanetScene'
@@ -82,6 +82,7 @@ export default function Universe({ onReady }: { onReady?: () => void }) {
         <PerformanceMonitor flipflops={3} onDecline={() => stepQuality(-1)} onIncline={() => stepQuality(1)} />
         {settings.fps > 0 && <FrameCap fps={settings.fps} />}
         <Starfield key={settings.starfield} count={settings.starfield} />
+        <RenderAndSync />
         <ShootingStars />
         <Warp />
         <World
@@ -415,5 +416,17 @@ function FrameCap({ fps }: { fps: number }) {
     const t = window.setInterval(() => invalidate(), 1000 / fps)
     return () => window.clearInterval(t)
   }, [fps, invalidate])
+  return null
+}
+
+/**
+ * 그리기를 직접 맡는다(priority 1): 모든 움직임(카메라·공전·비행)이 끝난 뒤 3D를 그리고,
+ * 바로 이어서 마커·라벨 DOM을 같은 위치로 옮긴다 → 3D와 마커가 같은 프레임에 화면에 뜬다.
+ */
+function RenderAndSync() {
+  useFrame(({ gl, scene, camera, size }) => {
+    gl.render(scene, camera)
+    syncAnchors(camera, size)
+  }, 1)
   return null
 }

@@ -69,46 +69,63 @@ export function bindLabel(id: string) {
   }
 }
 
+interface AnchorEntry {
+  obj: THREE.Object3D
+  offsetY: number
+  radius?: number
+}
+const anchors = new Map<string, AnchorEntry>()
+const tmpPos = new THREE.Vector3()
+const tmpScale = new THREE.Vector3()
+
 /**
+ * 3D 오브젝트 자리를 표시하는 점. 실제 DOM 이동은 `syncAnchors`가 **3D를 그린 직후** 한꺼번에 한다
+ * — 그래야 카메라·공전이 그 프레임에 움직인 뒤의 위치를 쓰므로 마커·라벨이 한 프레임도 밀리지 않는다.
  * @param radius 대상의 반지름(이 장면 좌표). 주면 화면상 크기에 맞는 원 마커(`id|marker`)를 함께 움직이고,
  *               라벨은 그 원 바로 아래(offsetY만큼 더)에 둔다.
  */
 export function Anchor({ id, offsetY = 0, radius }: { id: string; offsetY?: number; radius?: number }) {
   const ref = useRef<THREE.Group>(null)
-  const v = useMemo(() => new THREE.Vector3(), [])
-  const scale = useMemo(() => new THREE.Vector3(), [])
   useEffect(() => {
     const obj = ref.current
     if (!obj) return
     registry.objs.set(id, obj)
+    anchors.set(id, { obj, offsetY, radius })
     return () => {
       if (registry.objs.get(id) === obj) registry.objs.delete(id)
+      if (anchors.get(id)?.obj === obj) anchors.delete(id)
     }
-  }, [id])
-  useFrame(({ camera, size }) => {
+  }, [id, offsetY, radius])
+  return <group ref={ref} />
+}
+
+/** 3D 렌더 직후 호출: 모든 앵커의 화면 좌표로 마커·라벨 DOM을 옮긴다 (Universe의 RenderAndSync) */
+export function syncAnchors(camera: THREE.Camera, size: { width: number; height: number }) {
+  const zoom = (camera as THREE.OrthographicCamera).zoom
+  anchors.forEach((a, id) => {
     const el = registry.els.get(id)
     const marker = registry.els.get(id + '|marker')
-    if ((!el && !marker) || !ref.current) return
-    ref.current.getWorldPosition(v).project(camera)
-    const x = ((v.x + 1) / 2) * size.width
-    const y = ((1 - v.y) / 2) * size.height
-    const visibility = Math.abs(v.z) < 1 ? 'visible' : 'hidden'
+    if (!el && !marker) return
+    a.obj.getWorldPosition(tmpPos).project(camera)
+    const x = ((tmpPos.x + 1) / 2) * size.width
+    const y = ((1 - tmpPos.y) / 2) * size.height
+    const visibility = Math.abs(tmpPos.z) < 1 ? 'visible' : 'hidden'
     let r = 0
-    if (radius) {
-      ref.current.getWorldScale(scale)
-      r = Math.max(14, radius * scale.x * (camera as THREE.OrthographicCamera).zoom)
+    if (a.radius) {
+      a.obj.getWorldScale(tmpScale)
+      r = Math.max(14, a.radius * tmpScale.x * zoom)
     }
     if (marker) {
-      marker.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
-      marker.style.width = marker.style.height = `${Math.round(r * 2)}px`
+      marker.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
+      const d = `${Math.round(r * 2)}px`
+      if (marker.style.width !== d) marker.style.width = marker.style.height = d
       marker.style.visibility = visibility
     }
     if (el) {
-      el.style.transform = `translate(${x}px, ${y + r + offsetY}px) translate(-50%, -50%)`
+      el.style.transform = `translate3d(${x}px, ${y + r + a.offsetY}px, 0) translate(-50%, -50%)`
       el.style.visibility = visibility
     }
   })
-  return <group ref={ref} />
 }
 
 export function useHoverCursor(active: boolean) {
