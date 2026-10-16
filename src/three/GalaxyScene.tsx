@@ -34,7 +34,7 @@ export default function GalaxyScene({ layerId, matches, hovered, hide, backdrop 
       })}
       {!backdrop && (
         <>
-          <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.55} />
+          <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.32} />
           <Astronaut span={GALAXY_RADIUS * 0.8} />
           <SpaceWhale radius={GALAXY_RADIUS * 0.95} />
           <DriftingAsteroids count={1} span={GALAXY_RADIUS} />
