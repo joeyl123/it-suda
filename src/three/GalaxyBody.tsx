@@ -206,7 +206,8 @@ function buildGalaxyData(radius: number, density: number) {
   }
 }
 
-export default function GalaxyBody({ radius, density = 1 }: { radius: number; density?: number }) {
+/** @param starsOnly 태양계·행성 화면의 배경용: 별 점만 (블랙홀·성운·먼지띠·배경 은하 없이 가볍게) */
+export default function GalaxyBody({ radius, density = 1, starsOnly = false }: { radius: number; density?: number; starsOnly?: boolean }) {
   const spin = useRef<THREE.Group>(null)
   const data = useGalaxyData(radius, density)
   useFrame((_, dt) => {
@@ -217,18 +218,26 @@ export default function GalaxyBody({ radius, density = 1 }: { radius: number; de
       <group ref={spin}>
         <TwinklePoints stars={data.disk} />
         <TwinklePoints stars={data.young} />
-        <TwinklePoints stars={data.dust} opacity={0.55} blending={THREE.NormalBlending} />
-        {data.nebulae.map((n, i) => (
-          <sprite key={i} position={n.p} scale={[n.scale, n.scale * 0.7, 1]}>
-            <spriteMaterial map={getGlowTexture()} color={n.color} transparent opacity={n.opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
-          </sprite>
-        ))}
-        <sprite position={data.dwarf} scale={[7, 4, 1]}>
-          <spriteMaterial map={getGlowTexture()} color="#cfe0ff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </sprite>
+        {!starsOnly && (
+          <>
+            <TwinklePoints stars={data.dust} opacity={0.55} blending={THREE.NormalBlending} />
+            {data.nebulae.map((n, i) => (
+              <sprite key={i} position={n.p} scale={[n.scale, n.scale * 0.7, 1]}>
+                <spriteMaterial map={getGlowTexture()} color={n.color} transparent opacity={n.opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+              </sprite>
+            ))}
+            <sprite position={data.dwarf} scale={[7, 4, 1]}>
+              <spriteMaterial map={getGlowTexture()} color="#cfe0ff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
+            </sprite>
+          </>
+        )}
       </group>
-      <BlackHole />
-      <DistantGalaxies />
+      {!starsOnly && (
+        <>
+          <BlackHole />
+          <DistantGalaxies />
+        </>
+      )}
     </>
   )
 }
