@@ -7,6 +7,7 @@ import type { Session } from '../lib/sessions'
 import { Anchor, Glow, OrbitRing } from './common'
 import { AsteroidBelt, Comet } from './effects'
 import Planet from './Planet'
+import { useQuality } from '../lib/quality'
 import type { SceneProps } from './Universe'
 
 /** 태양계 장면 (태양계 좌표). 행성마다 앵커 `p<번호>`. */
@@ -72,6 +73,7 @@ interface OrbitingProps {
 }
 
 function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, onHover, onSelect }: OrbitingProps) {
+  const quality = useQuality().settings
   const ref = useRef<THREE.Group>(null)
   const body = useRef<THREE.Group>(null)
   const angle = useRef(slot.phase)
@@ -91,9 +93,9 @@ function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, 
       <group ref={body} scale={slot.size}>
         <Planet
           profile={slot.profile}
-          detail={8}
-          propBudget={55}
-          cloudBudget={12}
+          detail={quality.system.detail}
+          propBudget={quality.system.props}
+          cloudBudget={quality.system.clouds}
           spin={slot.profile.spin * 4}
           {...(interactive && {
             onPointerOver: (e) => {
@@ -103,6 +105,7 @@ function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, 
             onPointerOut: () => onHover(false),
             onClick: (e) => {
               e.stopPropagation()
+              if (e.delta > 6) return // 드래그였음
               onSelect()
             },
           })}

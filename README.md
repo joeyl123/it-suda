@@ -38,3 +38,4 @@ npm run dev
 3. 이후 `main` 브랜치에 푸시할 때마다 자동 배포
 
 `vercel.json` 은 새로고침 시 404가 나지 않도록 모든 경로를 `index.html` 로 연결합니다.
+`npm run build` 는 마지막에 `scripts/prerender.tsx` 로 회차·행성별 링크 미리보기(HTML + 이미지)를 만들어요.

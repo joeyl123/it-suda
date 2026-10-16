@@ -74,10 +74,19 @@
 @media (max-width: 899px) {
   .panel { padding: 24px 20px; }
   .panel-left, .panel-right {
-    top: auto; left: 8px; right: 8px; bottom: 8px; width: auto;
-    max-height: 44svh;
+    top: auto; left: 8px; right: 8px; width: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    max-height: 72svh;
+    padding-top: 28px;
     border-radius: 24px 24px 24px 4px;
     animation-name: panel-in-sheet;
+    transition: max-height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .panel[data-sheet='peek'] { max-height: 30svh; overflow: hidden; }
+  .panel[data-sheet='peek']::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+    background: linear-gradient(to bottom, transparent, rgba(22, 18, 34, 0.95));
+    pointer-events: none;
   }
   .panel-center { top: 72px; bottom: 8px; left: 8px; right: 8px; width: auto; }
 }
@@ -143,7 +152,11 @@
 .hud-bottom .depth-tip { left: 50%; top: auto; bottom: calc(100% + 8px); transform: translate(-50%, 4px); }
 .hud-bottom .depth-btn:hover .depth-tip { transform: translate(-50%, 0); }
 @media (max-width: 899px) {
-  .depth-nav { left: 12px; bottom: calc(44svh + 20px); }
+  .depth-nav { left: 12px; bottom: calc(30svh + 20px + env(safe-area-inset-bottom)); transition: bottom 0.35s; }
+  /* 시트를 펼쳐 읽는 중엔 화살표를 숨긴다 (위쪽 정보와 겹치지 않게) */
+  html[data-sheet='open'] .depth-nav { opacity: 0; pointer-events: none; }
+  .depth-nav { transition: bottom 0.35s, opacity 0.25s; }
+  html[data-sheet='none'] .depth-nav { bottom: calc(24px + env(safe-area-inset-bottom)); }
   .depth-tip { display: none; }
 }
 
@@ -259,3 +272,78 @@
 }
 @keyframes toast-in { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- Mobile sheet handle ---------- */
+.sheet-handle {
+  position: absolute; top: 0; left: 0; right: 0; height: 28px;
+  display: grid; place-items: center;
+  background: none; border: 0; cursor: grab; touch-action: none; z-index: 2;
+}
+.sheet-grip { width: 40px; height: 4px; border-radius: 999px; background: var(--rule); }
+.sheet-handle:hover .sheet-grip, .sheet-handle:focus-visible .sheet-grip { background: var(--ink-soft); }
+.sheet-cover { position: absolute; inset: 28px 0 0 0; background: none; border: 0; cursor: pointer; z-index: 1; }
+
+/* ---------- Loader: 3D가 첫 장면을 그릴 때까지 ---------- */
+.loader {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+  background: radial-gradient(ellipse 70% 50% at 50% 45%, rgba(106, 63, 160, 0.25), transparent 70%), var(--paper);
+  transition: opacity 0.6s ease;
+}
+.loader.is-done { opacity: 0; pointer-events: none; }
+.loader-orbit { position: relative; width: 96px; height: 96px; }
+.loader-star {
+  position: absolute; inset: 36px; border-radius: 50%;
+  background: #fff1c4; box-shadow: 0 0 24px 6px rgba(242, 220, 126, 0.55);
+}
+.loader-ring { position: absolute; inset: 0; border: 1px solid var(--rule); border-radius: 50%; }
+.loader-planet {
+  position: absolute; top: -5px; left: calc(50% - 5px); width: 10px; height: 10px; border-radius: 50%;
+  background: var(--apricot); box-shadow: 0 0 10px var(--apricot);
+  transform-origin: 5px 53px; animation: orbit 1.6s linear infinite;
+}
+@keyframes orbit { to { transform: rotate(360deg); } }
+.loader-text { margin: 0; font: 13px var(--font-mono); letter-spacing: 0.06em; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .loader-planet { animation: none; } }
+
+/* ---------- Header right + quality menu ---------- */
+.header-right { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.quality { position: relative; }
+.quality-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; cursor: pointer; }
+.quality-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 45;
+  width: 220px; padding: 8px;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 16px 4px 16px 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+.quality-title { margin: 4px 8px 8px; font: 11px var(--font-mono); letter-spacing: 0.08em; color: var(--ink-soft); }
+.quality-opt {
+  display: flex; flex-direction: column; align-items: flex-start; width: 100%; gap: 2px;
+  padding: 8px 10px; border: 1px solid transparent; border-radius: 10px;
+  background: none; cursor: pointer; text-align: left;
+}
+.quality-opt:hover { background: var(--paper-2); }
+.quality-opt[aria-checked='true'] { border-color: var(--violet); }
+.quality-name { font-size: 14px; font-weight: 600; }
+.quality-name small { font-weight: 400; color: var(--violet); }
+.quality-hint { font-size: 11px; color: var(--ink-soft); }
+
+/* ---------- 가벼움 모드: 비싼 효과 끄기 ---------- */
+html[data-quality='low'] .panel,
+html[data-quality='low'] .view-toggle,
+html[data-quality='low'] .depth-btn,
+html[data-quality='low'] .quality-menu,
+html[data-quality='low'] .header { backdrop-filter: none; }
+html[data-quality='low'] .panel { background: rgba(22, 18, 34, 0.96); }
+
+/* ---------- 노치·홈바 피하기, 좁은 화면 라벨 ---------- */
+.header-inner { padding-top: env(safe-area-inset-top); height: calc(64px + env(safe-area-inset-top)); }
+.cosmic-toast-wrap { bottom: calc(24px + env(safe-area-inset-bottom)); }
+@media (max-width: 599px) {
+  .sys-label { padding: 4px 8px; }
+  .sys-title { font-size: 13px; }
+  .sys-meta { display: none; }
+  .planet-label { font-size: 12px; }
+  .quality-btn { width: 30px; height: 30px; }
+}

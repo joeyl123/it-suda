@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
 import DepthNav from '../components/DepthNav'
+import Sheet from '../components/Sheet'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
 import { useTitle } from '../lib/useTitle'
@@ -58,7 +59,7 @@ export default function HomePage() {
   if (view === 'galaxy') {
     return (
       <>
-        <section className="panel panel-left galaxy-hero">
+        <Sheet as="section" className="panel panel-left galaxy-hero">
           <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
           <h1>
             IT 수다 <span className="accent">은하</span>
@@ -75,7 +76,7 @@ export default function HomePage() {
           {(query || tag) && (
             <p className="match-note">{results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}</p>
           )}
-        </section>
+        </Sheet>
         <div className="hud-bottom">
           {sessions[0] && <DepthNav down={{ to: `/sessions/${sessions[0].slug}`, label: '최근 태양계로' }} />}
           {viewToggle}

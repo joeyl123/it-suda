@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
 import DepthNav from '../components/DepthNav'
+import Sheet from '../components/Sheet'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { getSession, pad2 } from '../lib/sessions'
 import { useTitle } from '../lib/useTitle'
@@ -36,7 +37,7 @@ export default function TopicPage() {
         </span>
       </div>
 
-      <aside className="panel panel-right" style={tone}>
+      <Sheet className="panel panel-right" style={tone}>
         <nav className="crumbs">
           <Link to="/">은하</Link>
           <span>/</span>
@@ -50,7 +51,7 @@ export default function TopicPage() {
         </p>
         <h1 className="panel-title">{topic.title}</h1>
         {topic.body ? <Prose>{topic.body}</Prose> : <p className="muted">아직 기록된 내용이 없는 행성이에요.</p>}
-      </aside>
+      </Sheet>
 
       <DepthNav up={{ to: `/sessions/${session.slug}`, label: `태양계 No.${no}로` }} />
     </>

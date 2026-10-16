@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
 import DepthNav from '../components/DepthNav'
+import Sheet from '../components/Sheet'
 import Prose from '../components/Prose'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2 } from '../lib/sessions'
@@ -27,7 +28,7 @@ export default function SessionPage() {
         {session.topicList.length > 0 && <span className="hint">행성을 눌러 착륙</span>}
       </div>
 
-      <aside className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
+      <Sheet className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
         <nav className="crumbs">
           <Link to="/">은하</Link>
           <span>/</span>
@@ -75,7 +76,7 @@ export default function SessionPage() {
             })}
           </ol>
         )}
-      </aside>
+      </Sheet>
 
       <DepthNav
         up={{ to: '/', label: '은하로' }}

@@ -6,14 +6,16 @@ import { GALAXY_RADIUS, galaxyOrder, systemPosition } from '../lib/layout'
 import type { Session } from '../lib/sessions'
 import { Anchor, Glow, OrbitRing } from './common'
 import GalaxyBody from './GalaxyBody'
+import { useQuality } from '../lib/quality'
 import { Astronaut, DriftingAsteroids, SpaceWhale, Ufo } from './effects'
 import type { SceneProps } from './Universe'
 
 /** 은하 장면 (은하 좌표). 태양계마다 앵커 `sys:<slug>`. */
 export default function GalaxyScene({ layerId, matches, hovered, hide, interactive, onHover, onSelect }: SceneProps & { matches: Set<string> }) {
+  const { settings } = useQuality()
   return (
     <>
-      <GalaxyBody radius={GALAXY_RADIUS} />
+      <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars} />
       {galaxyOrder.map((s, i) => {
         const id = `sys:${s.slug}`
         return (
@@ -107,6 +109,7 @@ function StarSystem({ layerId, session, index, hidden, dim, hovered, interactive
             onPointerOut={() => onHover(false)}
             onClick={(e) => {
               e.stopPropagation()
+              if (e.delta > 6) return // 드래그였음
               onSelect()
             }}
           >

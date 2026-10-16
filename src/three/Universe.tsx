@@ -12,13 +12,15 @@
 //      화면상으로는 아무것도 변하지 않는다. 그리고 A를 내린다.
 import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { OrbitControls, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { systemProfile } from '../lib/cosmos'
 import { childAnchor, extentOf, frameOf, galaxyOrder, systemLayout, viewFromPath, viewKey, type View } from '../lib/layout'
 import { formatDate, pad2, searchSessions } from '../lib/sessions'
 import { prefersReducedMotion } from '../lib/zoom'
+import { stepQuality, useQuality } from '../lib/quality'
+import { useSheet, type SheetState } from '../lib/ui'
 import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, useHoverCursor } from './common'
 import { ShootingStars, Warp } from './effects'
 import GalaxyScene from './GalaxyScene'
@@ -47,13 +49,15 @@ function modeOf(pathname: string, search: string, view: View): Mode {
 }
 
 /** 패널을 피해 장면 중심을 옮길 거리 (px). x>0 오른쪽, y>0 위쪽 */
-function shiftOf(mode: Mode, w: number, h: number) {
+function shiftOf(mode: Mode, w: number, h: number, sheet: SheetState = 'peek') {
   if (mode === 'ambient') return { x: 0, y: 0 }
   if (w >= 900) return { x: mode === 'galaxy' ? 220 : -250, y: 0 }
-  return { x: 0, y: h * 0.2 }
+  // 모바일: 아래 시트가 가리는 만큼 위로 (접힌 시트 ≈ 30%, 펼친 시트 ≈ 72%)
+  return { x: 0, y: h * (sheet === 'open' ? 0.36 : 0.15) }
 }
 
-export default function Universe() {
+/** @param onReady 첫 장면이 실제로 그려졌을 때 (로딩 화면을 걷는다) */
+export default function Universe({ onReady }: { onReady?: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
   const target = useMemo(() => viewFromPath(location.pathname), [location.pathname])
@@ -64,16 +68,20 @@ export default function Universe() {
   }, [location.search])
   const [hovered, setHovered] = useState<string | null>(null)
   const [active, setActive] = useState<{ view: View; flying: boolean }>({ view: target, flying: false })
+  const { settings } = useQuality()
   useHoverCursor(hovered !== null)
   useEffect(() => setHovered(null), [location.pathname])
 
   return (
     <div className="universe">
-      <Canvas orthographic dpr={[1, 2]} camera={{ position: [115, 115, 115], zoom: 10, near: 0.1, far: 1200 }} gl={{ antialias: true, alpha: true }}>
+      <Canvas orthographic dpr={[1, settings.dpr]} frameloop={settings.fps ? 'demand' : 'always'} camera={{ position: [115, 115, 115], zoom: 10, near: 0.1, far: 1200 }} gl={{ antialias: true, alpha: true }}>
         <ambientLight intensity={0.9} />
         <hemisphereLight args={['#e2d3f7', '#2a2140', 1.1]} />
         <directionalLight position={[-8, 12, 6]} intensity={2.2} color="#fff4e0" />
-        <Starfield />
+        {/* 버벅이면 품질을 한 단계 내리고, 여유가 생기면 올린다 (자동 모드일 때만) */}
+        <PerformanceMonitor flipflops={3} onDecline={() => stepQuality(-1)} onIncline={() => stepQuality(1)} />
+        {settings.fps > 0 && <FrameCap fps={settings.fps} />}
+        <Starfield key={settings.starfield} count={settings.starfield} />
         <ShootingStars />
         <Warp />
         <World
@@ -84,6 +92,7 @@ export default function Universe() {
           onHover={setHovered}
           onSelect={(path) => navigate(path)}
           onActive={setActive}
+          onReady={onReady}
         />
       </Canvas>
       <Labels
@@ -134,9 +143,12 @@ interface WorldProps {
   onHover: (id: string | null) => void
   onSelect: (path: string) => void
   onActive: (a: { view: View; flying: boolean }) => void
+  onReady?: () => void
 }
 
-function World({ target, mode, matches, hovered, onHover, onSelect, onActive }: WorldProps) {
+function World({ target, mode, matches, hovered, onHover, onSelect, onActive, onReady }: WorldProps) {
+  const sheet = useSheet()
+  const readySent = useRef(false)
   const { camera, size } = useThree()
   const cam = camera as THREE.OrthographicCamera
   const controls = useThree((s) => s.controls) as unknown as Controls | null
@@ -231,7 +243,11 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive }: 
 
   useFrame((_, dt) => {
     // 패널을 피하는 화면 중심 이동 (부드럽게)
-    const want = shiftOf(mode, size.width, size.height)
+    if (!readySent.current && controls) {
+      readySent.current = true
+      onReady?.()
+    }
+    const want = shiftOf(mode, size.width, size.height, sheet)
     const k = 1 - Math.exp(-dt * 4)
     shift.current.x += (want.x - shift.current.x) * k
     shift.current.y += (want.y - shift.current.y) * k
@@ -384,5 +400,15 @@ function Labels({ view, hidden, hovered, matches, onHover, onSelect }: LabelsPro
     )
   }
 
+  return null
+}
+
+/** 가벼움 모드: 화면 주사율 대신 정해진 fps로만 그린다 (frameloop="demand"와 함께) */
+function FrameCap({ fps }: { fps: number }) {
+  const invalidate = useThree((st) => st.invalidate)
+  useEffect(() => {
+    const t = window.setInterval(() => invalidate(), 1000 / fps)
+    return () => window.clearInterval(t)
+  }, [fps, invalidate])
   return null
 }

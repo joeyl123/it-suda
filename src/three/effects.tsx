@@ -19,6 +19,7 @@ function clickable(onClick: () => void) {
   return {
     onClick: (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation()
+      if (e.delta > 6) return // 드래그였음
       onClick()
     },
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {

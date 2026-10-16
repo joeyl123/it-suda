@@ -91,8 +91,10 @@ export function TwinklePoints({ stars, opacity = 1, blending = THREE.AdditiveBle
 
 // ---------------------------------------------------------------- galaxy
 
-function useGalaxyData(radius: number) {
+function useGalaxyData(radius: number, density: number) {
   return useMemo(() => {
+    // 화면 품질에 따라 별 개수를 줄인다 (lib/quality)
+    const scaled = (x: number) => Math.max(1, Math.round(x * density))
     const rand = seeded('it-suda-galaxy')
     const gauss = () => (rand() + rand() + rand() + rand() - 2) / 2
     const C = (hex: string) => new THREE.Color(hex)
@@ -103,7 +105,7 @@ function useGalaxyData(radius: number) {
 
     // 팔
     for (const arm of ARMS) {
-      const n = Math.round(15000 * arm.weight)
+      const n = scaled(15000 * arm.weight)
       const [c0, c1] = arm.colors.map(C)
       for (let i = 0; i < n; i++) {
         const t = Math.pow(rand(), 0.8)
@@ -117,7 +119,7 @@ function useGalaxyData(radius: number) {
         const t0 = 0.25 + rand() * 0.6
         const base = armPoint(arm, t0, radius)
         const dirA = base.a + 0.9 + rand() * 0.5
-        for (let i = 0; i < 260 * arm.width; i++) {
+        for (let i = 0; i < scaled(260 * arm.width); i++) {
           const u = rand()
           const r = base.r + u * radius * 0.25
           const a = dirA + (r - base.r) * 0.05
@@ -127,13 +129,13 @@ function useGalaxyData(radius: number) {
         }
       }
       // 먼지띠: 팔 안쪽 가장자리를 따라
-      for (let i = 0; i < 1600 * arm.width; i++) {
+      for (let i = 0; i < scaled(1600 * arm.width); i++) {
         const t = 0.12 + rand() * 0.75
         const pt = armPoint(arm, t, radius, -0.22 * arm.width + gauss() * 0.06)
         dust.push({ p: [pt.x + gauss() * 0.35, gauss() * 0.15, pt.z + gauss() * 0.35], c: C('#0b0712'), s: 3 + rand() * 4 })
       }
       // 젊은 청색 별
-      for (let i = 0; i < 140 * arm.width; i++) {
+      for (let i = 0; i < scaled(140 * arm.width); i++) {
         const pt = armPoint(arm, 0.2 + rand() * 0.75, radius, 0.12 + gauss() * 0.1)
         young.push({ p: [pt.x + gauss() * 0.6, gauss() * 0.2, pt.z + gauss() * 0.6], c: C(rand() < 0.7 ? '#cfe0ff' : '#ffffff'), s: 3 + rand() * 3.5 })
       }
@@ -151,7 +153,7 @@ function useGalaxyData(radius: number) {
     }
 
     // 팽대부 (납작한 타원체)
-    for (let i = 0; i < 3800; i++) {
+    for (let i = 0; i < scaled(3800); i++) {
       const r = Math.abs(gauss()) * 2.6
       const a = rand() * Math.PI * 2
       const c = C('#fff1c4').lerp(C('#ffb36b'), rand() * 0.6).multiplyScalar(0.6 + rand() * 0.4)
@@ -163,7 +165,7 @@ function useGalaxyData(radius: number) {
       const a = rand() * Math.PI * 2
       const r = 4 + rand() * radius * 0.9
       const cx = Math.cos(a) * r, cz = Math.sin(a) * r, cy = (rand() - 0.5) * 5
-      for (let i = 0; i < 140; i++) {
+      for (let i = 0; i < scaled(140); i++) {
         const d = Math.abs(gauss()) * 0.45
         const v = new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize().multiplyScalar(d)
         disk.push({ p: [cx + v.x, cy + v.y, cz + v.z], c: C('#ffe9c4').multiplyScalar(0.6 + rand() * 0.4), s: 1.4 + rand() * 2 })
@@ -171,14 +173,14 @@ function useGalaxyData(radius: number) {
     }
 
     // 헤일로
-    for (let i = 0; i < 900; i++) {
+    for (let i = 0; i < scaled(900); i++) {
       const v = new THREE.Vector3(rand() - 0.5, (rand() - 0.5) * 0.6, rand() - 0.5).normalize().multiplyScalar(radius * (0.3 + rand() * 1.1))
       disk.push({ p: [v.x, v.y, v.z], c: C('#d8cfe8').multiplyScalar(0.25 + rand() * 0.3), s: 1 + rand() * 1.4 })
     }
 
     // 위성 은하 (작은 타원 은하)
     const dwarf = new THREE.Vector3(radius * 1.25, 3.5, -radius * 0.55)
-    for (let i = 0; i < 1100; i++) {
+    for (let i = 0; i < scaled(1100); i++) {
       const r = Math.abs(gauss()) * 1.8
       const a = rand() * Math.PI * 2
       disk.push({
@@ -189,12 +191,12 @@ function useGalaxyData(radius: number) {
     }
 
     return { disk, dust, young, nebulae, dwarf }
-  }, [radius])
+  }, [radius, density])
 }
 
-export default function GalaxyBody({ radius }: { radius: number }) {
+export default function GalaxyBody({ radius, density = 1 }: { radius: number; density?: number }) {
   const spin = useRef<THREE.Group>(null)
-  const data = useGalaxyData(radius)
+  const data = useGalaxyData(radius, density)
   useFrame((_, dt) => {
     if (spin.current) spin.current.rotation.y -= dt * 0.012
   })

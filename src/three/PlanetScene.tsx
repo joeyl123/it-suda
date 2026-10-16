@@ -8,6 +8,7 @@ import { cosmicToast } from '../lib/toast'
 import { Glow, OrbitRing } from './common'
 import { RocketPad, Satellite, Ufo, type Launch } from './effects'
 import Planet from './Planet'
+import { useQuality } from '../lib/quality'
 import type { SceneProps } from './Universe'
 
 const MOON_COLORS = ['#c9c4bc', '#a8a29a', '#d8cbb0', '#9aa3ad']
@@ -16,6 +17,7 @@ let firstLaunchHint = true
 
 /** 토픽 하나 = 행성 하나의 생태계 (행성 좌표, 반지름 1). 표면을 누르면 그 자리에서 로켓이 발사된다. */
 export default function PlanetScene({ session, topic, interactive }: SceneProps & { session: Session; topic: Topic }) {
+  const quality = useQuality().settings
   const profile = useMemo(() => planetProfile(session, topic), [session, topic])
   const system = systemProfile(session)
   const moons = useMemo(() => {
@@ -46,11 +48,11 @@ export default function PlanetScene({ session, topic, interactive }: SceneProps 
     <>
       <Planet
         profile={profile}
-        detail={24}
-        propBudget={320}
-        cloudBudget={46}
+        detail={quality.planet.detail}
+        propBudget={quality.planet.props}
+        cloudBudget={quality.planet.clouds}
         onClick={(e) => {
-          if (!interactive) return
+          if (!interactive || e.delta > 6) return // 드래그였음
           e.stopPropagation()
           // 조작 가능한 장면은 항상 원점·축척 1에 있으므로 클릭 지점 = 행성 좌표
           launch(e.point)
