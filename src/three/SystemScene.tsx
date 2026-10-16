@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { systemProfile, type StarType } from '../lib/cosmos'
 import { systemLayout, type PlanetSlot } from '../lib/layout'
 import type { Session } from '../lib/sessions'
-import { Anchor, Glow, OrbitRing } from './common'
+import { Anchor, Emerge, Glow, OrbitRing } from './common'
 import { AsteroidBelt, Comet } from './effects'
 import Planet from './Planet'
 import { useQuality } from '../lib/quality'
@@ -12,31 +12,36 @@ import type { SceneProps } from './Universe'
 
 /** 태양계 장면 (태양계 좌표). 행성마다 앵커 `p<번호>`. */
 // 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
-export default function SystemScene({ layerId, session, hovered, hide, frozen }: SceneProps & { session: Session }) {
+export default function SystemScene({ layerId, session, hovered, hide, frozen, emerge }: SceneProps & { session: Session }) {
   const { star, corona, seed } = systemProfile(session)
   const layout = systemLayout(session)
   const paused = frozen || hovered !== null
 
   return (
     <>
-      <Sun star={star} corona={corona} />
-      {layout.planets.map((p) => {
-        const lit = hovered === p.id
-        return (
-          <group key={p.id}>
-            <OrbitRing radius={p.orbit} color={lit ? p.profile.biome.glow : corona} opacity={lit ? 0.6 : 0.22} />
-            <OrbitingPlanet
-              slot={p}
-              anchorId={`${layerId}::${p.id}`}
-              hidden={hide === p.id}
-              paused={paused}
-              hovered={lit}
-            />
-          </group>
-        )
-      })}
-      {layout.belt && <AsteroidBelt inner={layout.last + 1.1} outer={layout.last + 2.2} seed={seed} />}
-      {layout.comet && <Comet a={layout.extent * 0.62} e={0.72} seed={seed} />}
+      <Emerge source={emerge} core>
+        <Sun star={star} corona={corona} />
+      </Emerge>
+      {/* 들어올 땐 항성에서 바깥으로 자라나고, 행성에서 나올 땐 화면 밖에서 모여든다 */}
+      <Emerge source={emerge}>
+        {layout.planets.map((p) => {
+          const lit = hovered === p.id
+          return (
+            <group key={p.id}>
+              <OrbitRing radius={p.orbit} color={lit ? p.profile.biome.glow : corona} opacity={lit ? 0.6 : 0.22} />
+              <OrbitingPlanet
+                slot={p}
+                anchorId={`${layerId}::${p.id}`}
+                hidden={hide === p.id}
+                paused={paused}
+                hovered={lit}
+              />
+            </group>
+          )
+        })}
+        {layout.belt && <AsteroidBelt inner={layout.last + 1.1} outer={layout.last + 2.2} seed={seed} />}
+        {layout.comet && <Comet a={layout.extent * 0.62} e={0.72} seed={seed} />}
+      </Emerge>
     </>
   )
 }

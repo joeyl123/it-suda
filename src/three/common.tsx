@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
@@ -135,4 +135,41 @@ export function useHoverCursor(active: boolean) {
       document.body.style.cursor = ''
     }
   }, [active])
+}
+
+/**
+ * 장면이 바뀔 때 주변 오브젝트가 "생겨나는" 방식 (design.md §6).
+ *  - center: 아래 단계로 들어갈 때 — 중심(항성·행성)에서 바깥으로 자라난다
+ *  - outside: 위 단계로 나올 때 — 화면 밖 멀리에서 pivot(방금 떠나온 자리) 쪽으로 모여든다
+ * p는 0→1 진행도. Universe가 비행 중에 채우고, 도착하면 없앤다(= 제자리).
+ */
+export interface EmergeState {
+  p: number
+  from: 'center' | 'outside'
+  pivot: THREE.Vector3
+}
+export type EmergeSource = () => EmergeState | undefined
+
+const EMERGE_CENTER_START = 0.06
+const EMERGE_OUTSIDE_START = 2.6
+
+/** 감싼 오브젝트를 EmergeState에 따라 모으거나 펼친다. core는 중심 천체 — 안으로 들어갈 땐 그대로 둔다(이어지는 느낌). */
+export function Emerge({ source, core = false, children }: { source?: EmergeSource; core?: boolean; children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null)
+  useFrame(() => {
+    const g = ref.current
+    if (!g) return
+    const st = source?.()
+    if (!st || (core && st.from === 'center')) {
+      if (g.scale.x !== 1) {
+        g.scale.setScalar(1)
+        g.position.set(0, 0, 0)
+      }
+      return
+    }
+    const s = st.from === 'center' ? THREE.MathUtils.lerp(EMERGE_CENTER_START, 1, st.p) : THREE.MathUtils.lerp(EMERGE_OUTSIDE_START, 1, st.p)
+    g.scale.setScalar(s)
+    g.position.copy(st.pivot).multiplyScalar(1 - s) // pivot을 중심으로 늘이고 줄인다
+  })
+  return <group ref={ref}>{children}</group>
 }

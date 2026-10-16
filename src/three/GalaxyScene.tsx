@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { planetColors, planetProfile, seeded, systemProfile } from '../lib/cosmos'
 import { GALAXY_RADIUS, galaxyOrder, systemPosition } from '../lib/layout'
 import type { Session } from '../lib/sessions'
-import { Anchor, Glow, OrbitRing } from './common'
+import { Anchor, Emerge, Glow, OrbitRing } from './common'
 import GalaxyBody from './GalaxyBody'
 import { useQuality } from '../lib/quality'
 import { Astronaut, DriftingAsteroids, SpaceWhale, Ufo } from './effects'
@@ -13,33 +13,36 @@ import type { SceneProps } from './Universe'
 /** 은하 장면 (은하 좌표). 태양계마다 앵커 `sys:<slug>`. */
 // 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
 // backdrop: 태양계·행성 화면 뒤에 깔리는 은하 — 별 점만 (블랙홀·성운·다른 회차 태양계·이스터에그 없이 가볍게)
-export default function GalaxyScene({ layerId, matches, hovered, hide, backdrop = false }: SceneProps & { matches: Set<string>; backdrop?: boolean }) {
+export default function GalaxyScene({ layerId, matches, hovered, hide, emerge, backdrop = false }: SceneProps & { matches: Set<string>; backdrop?: boolean }) {
   const { settings } = useQuality()
   return (
     <>
       <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars} starsOnly={backdrop} />
-      {!backdrop && galaxyOrder.map((s, i) => {
-        const id = `sys:${s.slug}`
-        return (
-          <StarSystem
-            key={s.slug}
-            layerId={layerId}
-            session={s}
-            index={i}
-            hidden={hide === id}
-            dim={!matches.has(s.slug)}
-            hovered={hovered === id}
-          />
-        )
-      })}
-      {!backdrop && (
-        <>
-          <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.32} />
-          <Astronaut span={GALAXY_RADIUS * 0.8} />
-          <SpaceWhale radius={GALAXY_RADIUS * 0.95} />
-          <DriftingAsteroids count={1} span={GALAXY_RADIUS} />
-        </>
-      )}
+      {/* 태양계에서 은하로 나올 땐 다른 태양계들이 화면 밖에서 모여든다 */}
+      <Emerge source={emerge}>
+        {!backdrop && galaxyOrder.map((s, i) => {
+          const id = `sys:${s.slug}`
+          return (
+            <StarSystem
+              key={s.slug}
+              layerId={layerId}
+              session={s}
+              index={i}
+              hidden={hide === id}
+              dim={!matches.has(s.slug)}
+              hovered={hovered === id}
+            />
+          )
+        })}
+        {!backdrop && (
+          <>
+            <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.32} />
+            <Astronaut span={GALAXY_RADIUS * 0.8} />
+            <SpaceWhale radius={GALAXY_RADIUS * 0.95} />
+            <DriftingAsteroids count={1} span={GALAXY_RADIUS} />
+          </>
+        )}
+      </Emerge>
     </>
   )
 }

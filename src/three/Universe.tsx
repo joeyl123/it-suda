@@ -21,7 +21,7 @@ import { formatDate, pad2, searchSessions } from '../lib/sessions'
 import { prefersReducedMotion } from '../lib/zoom'
 import { stepQuality, useQuality } from '../lib/quality'
 import { useSheet, type SheetState } from '../lib/ui'
-import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, syncAnchors, useHoverCursor } from './common'
+import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, syncAnchors, useHoverCursor, type EmergeSource, type EmergeState } from './common'
 import { ShootingStars, Warp } from './effects'
 import GalaxyScene from './GalaxyScene'
 import PlanetScene from './PlanetScene'
@@ -38,6 +38,8 @@ export interface SceneProps {
   frozen: boolean
   onHover: (id: string | null) => void
   onSelect: (path: string) => void
+  /** 비행 중 주변 오브젝트가 생겨나는 진행 상태 (common.tsx Emerge) */
+  emerge?: EmergeSource
 }
 
 /** 화면 배치: galaxy = 왼쪽 소개 카드, panel = 오른쪽(모바일은 아래) 패널, ambient = 가운데 카드(소개·목록) */
@@ -160,7 +162,6 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 4
-  const BLUR_CURVE = 2.5 // 차오르는 J곡선의 휨 (클수록 처음이 더 느리다)
   const BLUR_SETTLE = 2.4 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
@@ -178,6 +179,16 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   layersRef.current = layers
   const groups = useRef(new Map<string, THREE.Group>())
   const flight = useRef<Flight | null>(null)
+  // 도착할 레이어의 주변 오브젝트가 생겨나는 진행 상태 (레이어 id → 상태)
+  const emerges = useRef(new Map<string, EmergeState>())
+  const emergeOf = useMemo(() => {
+    const cache = new Map<string, EmergeSource>()
+    return (id: string) => {
+      let fn = cache.get(id)
+      if (!fn) cache.set(id, (fn = () => emerges.current.get(id)))
+      return fn
+    }
+  }, [])
   // 배경 은하: 지금 원점에 있는 장면이 은하 속 어디에 있는지(rootFrame)에 맞춰 은하를 뒤에 깐다.
   // 은하 레이어가 화면에 있을 땐(은하 화면, 은하로 빠져나가는 비행) 숨겨서 겹치지 않게.
   const rootFrame = useRef<Frame>(frameOf(target))
@@ -259,6 +270,13 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       { id, view: B, pos: pos.toArray() as [number, number, number], scale, hide: outOf },
     ])
     settle.current = null // 초점이 돌아오던 중이면 새 비행이 이어받는다
+    // 들어갈 땐 중심에서 자라나고, 나올 땐 화면 밖에서 방금 떠나온 자리(B 좌표에서 A의 위치) 쪽으로 모여든다
+    emerges.current.clear()
+    emerges.current.set(id, {
+      p: 0,
+      from: kind === 'out' ? 'outside' : 'center',
+      pivot: kind === 'out' ? pos.clone().negate().divideScalar(scale) : new THREE.Vector3(),
+    })
     flight.current = {
       t: 0,
       dur: prefersReducedMotion() ? 0.01 : kind === 'side' ? 1.8 : 1.7,
@@ -293,15 +311,18 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     if (settle.current) {
       const st = settle.current
       st.t = Math.min(1, st.t + Math.min(dt, 0.1) / BLUR_SETTLE)
-      setBlur(st.peak * (1 - st.t) ** 1.8) // 처음엔 빠르게 풀리고, 끝으로 갈수록 아주 천천히 또렷해진다
+      setBlur(st.peak * (1 - st.t)) // 일정한 속도로 또렷해진다
       if (st.t >= 1) settle.current = null
     }
     const f = flight.current
     if (!f || !controls) return
     // 무거운 프레임(행성 생성 등)이 있어도 시간표대로 — 너무 큰 건너뜀만 막는다
     f.t = Math.min(1, f.t + Math.min(dt, 0.25) / f.dur)
-    // 블러: 줌과 함께 J자로 — 처음엔 아주 살짝, 갈수록 빠르게 차올라 장면이 바뀌는 순간 최대 (첫 등장 줌에는 없음)
-    if (f.kind !== 'intro') setBlur(BLUR_PEAK * f.t ** BLUR_CURVE)
+    // 블러: 줌과 함께 일정한 속도로 차올라 장면이 바뀌는 순간 최대 (첫 등장 줌에는 없음)
+    if (f.kind !== 'intro') setBlur(BLUR_PEAK * f.t)
+    const em = f.layerId ? emerges.current.get(f.layerId) : undefined
+    // 들어갈 땐 새 장면이 점에서 화면 크기로 보이기 시작할 무렵부터 자라나고, 나올 땐 처음부터 모여든다
+    if (em) em.p = em.from === 'center' ? THREE.MathUtils.smoothstep(f.t, 0.2, 1) : THREE.MathUtils.smoothstep(f.t, 0, 0.95)
     const u = easeInOutCubic(f.t)
     const lz = THREE.MathUtils.lerp(Math.log(f.fromZ), Math.log(f.toZ), easeInOutSine(f.t)) - f.bump * Math.sin(Math.PI * f.t)
     cam.zoom = Math.exp(lz)
@@ -314,6 +335,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
 
     if (f.t < 1) return
     flight.current = null
+    emerges.current.clear()
     // 장면이 바뀌는 지금이 가장 흐린 순간 → 여기서부터 천천히 초점이 돌아온다
     if (f.kind !== 'intro') settle.current = { t: 0, peak: BLUR_PEAK }
     setFlying(false)
@@ -376,6 +398,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
           frozen: !last || flying,
           onHover,
           onSelect,
+          emerge: emergeOf(l.id),
         }
         return (
           <group

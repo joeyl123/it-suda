@@ -5,7 +5,7 @@ import { planetProfile, seeded, systemProfile } from '../lib/cosmos'
 import { planetRestPosition } from '../lib/layout'
 import type { Session, Topic } from '../lib/sessions'
 import { cosmicToast } from '../lib/toast'
-import { Glow, OrbitRing } from './common'
+import { Emerge, Glow, OrbitRing } from './common'
 import { RocketPad, Satellite, Ufo, type Launch } from './effects'
 import Planet from './Planet'
 import { useQuality } from '../lib/quality'
@@ -16,7 +16,7 @@ let launchId = 0
 let firstLaunchHint = true
 
 /** 토픽 하나 = 행성 하나의 생태계 (행성 좌표, 반지름 1). 표면을 누르면 그 자리에서 로켓이 발사된다. */
-export default function PlanetScene({ session, topic, interactive }: SceneProps & { session: Session; topic: Topic }) {
+export default function PlanetScene({ session, topic, interactive, emerge }: SceneProps & { session: Session; topic: Topic }) {
   const quality = useQuality().settings
   const profile = useMemo(() => planetProfile(session, topic), [session, topic])
   const system = systemProfile(session)
@@ -63,12 +63,15 @@ export default function PlanetScene({ session, topic, interactive }: SceneProps 
         }}
       />
       <RocketPad launches={launches} surface={1 + profile.amp * 0.6} onDone={(id) => setLaunches((l) => l.filter((x) => x.id !== id))} />
-      {moons.map((m, i) => (
-        <Moon key={i} {...m} />
-      ))}
-      <Satellites color={profile.biome.glow} />
-      {extras.satellite && <Satellite radius={1.45 + profile.amp} tilt={profile.tilt + 0.5} />}
-      {extras.ufo && <Ufo mode="orbit" span={1.75 + profile.amp} scale={0.11} />}
+      {/* 위성·먼지·방문자는 행성에서부터 퍼져 나온다 */}
+      <Emerge source={emerge}>
+        {moons.map((m, i) => (
+          <Moon key={i} {...m} />
+        ))}
+        <Satellites color={profile.biome.glow} />
+        {extras.satellite && <Satellite radius={1.45 + profile.amp} tilt={profile.tilt + 0.5} />}
+        {extras.ufo && <Ufo mode="orbit" span={1.75 + profile.amp} scale={0.11} />}
+      </Emerge>
       {interactive && (
         <group position={sunAt}>
           <Glow color={system.star.core} scale={5 * system.star.size} />
