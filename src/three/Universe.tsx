@@ -162,7 +162,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 4
-  const BLUR_SETTLE = 1.2 // 초점이 돌아오는 시간 (초)
+  const BLUR_SETTLE = 0.6 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
     if (v === blurPx.current) return
