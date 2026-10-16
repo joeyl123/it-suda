@@ -173,3 +173,39 @@ export function Emerge({ source, core = false, children }: { source?: EmergeSour
   })
   return <group ref={ref}>{children}</group>
 }
+
+/**
+ * 감싼 오브젝트의 불투명도를 EmergeState 진행도(p)에 맞춰 올리고 내린다 — 크기로 움직이면 어색한 것들
+ * (블랙홀·성운·먼지띠·먼 항성 빛)에 쓴다. 상태가 없으면 원래 불투명도.
+ */
+export function Fade({ source, children }: { source?: EmergeSource; children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null)
+  const base = useRef(new WeakMap<THREE.Material, number>())
+  const last = useRef(1)
+  useFrame(() => {
+    const g = ref.current
+    if (!g) return
+    const v = source?.()?.p ?? 1
+    if (v === last.current) return
+    last.current = v
+    g.visible = v > 0.01
+    g.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+      if (!m) return
+      for (const mat of Array.isArray(m) ? m : [m]) {
+        const u = (mat as THREE.ShaderMaterial).uniforms?.uOpacity
+        if (!base.current.has(mat)) {
+          base.current.set(mat, u ? u.value : mat.opacity)
+          if (!u && !mat.transparent) {
+            mat.transparent = true
+            mat.needsUpdate = true
+          }
+        }
+        const b = base.current.get(mat)!
+        if (u) u.value = b * v
+        else mat.opacity = b * v
+      }
+    })
+  })
+  return <group ref={ref}>{children}</group>
+}

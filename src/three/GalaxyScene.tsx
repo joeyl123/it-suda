@@ -17,7 +17,7 @@ export default function GalaxyScene({ layerId, matches, hovered, hide, emerge, b
   const { settings } = useQuality()
   return (
     <>
-      <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars} starsOnly={backdrop} />
+      <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars} starsOnly={backdrop} emerge={emerge} />
       {/* 태양계에서 은하로 나올 땐 다른 태양계들이 화면 밖에서 모여든다 */}
       <Emerge source={emerge}>
         {!backdrop && galaxyOrder.map((s, i) => {

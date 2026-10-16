@@ -162,7 +162,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 4
-  const BLUR_SETTLE = 2.4 // 초점이 돌아오는 시간 (초)
+  const BLUR_SETTLE = 1.2 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
     if (v === blurPx.current) return
@@ -181,6 +181,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const flight = useRef<Flight | null>(null)
   // 도착할 레이어의 주변 오브젝트가 생겨나는 진행 상태 (레이어 id → 상태)
   const emerges = useRef(new Map<string, EmergeState>())
+  // 각 레이어가 비행의 어느 구간(t0→t1)에서 나타나거나(leave=false) 사라지는지
+  const emergeTiming = useRef(new Map<string, { t0: number; t1: number; leave: boolean }>())
   const emergeOf = useMemo(() => {
     const cache = new Map<string, EmergeSource>()
     return (id: string) => {
@@ -270,13 +272,15 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       { id, view: B, pos: pos.toArray() as [number, number, number], scale, hide: outOf },
     ])
     settle.current = null // 초점이 돌아오던 중이면 새 비행이 이어받는다
-    // 들어갈 땐 중심에서 자라나고, 나올 땐 화면 밖에서 방금 떠나온 자리(B 좌표에서 A의 위치) 쪽으로 모여든다
+    // 도착할 장면 B: 들어갈 땐 중심에서 자라나고, 나올 땐 화면 밖에서 방금 떠나온 자리(B 좌표에서 A의 위치) 쪽으로 모여든다.
+    // 떠나는 장면 A: 그 반대 — 들어갈 땐 목적지를 중심으로 화면 밖으로 밀려나고, 나올 땐 자기 중심으로 오그라든다.
     emerges.current.clear()
-    emerges.current.set(id, {
-      p: 0,
-      from: kind === 'out' ? 'outside' : 'center',
-      pivot: kind === 'out' ? pos.clone().negate().divideScalar(scale) : new THREE.Vector3(),
-    })
+    emergeTiming.current.clear()
+    const out = kind === 'out'
+    emerges.current.set(id, { p: 0, from: out ? 'outside' : 'center', pivot: out ? pos.clone().negate().divideScalar(scale) : new THREE.Vector3() })
+    emergeTiming.current.set(id, out ? { t0: 0, t1: 0.95, leave: false } : { t0: 0.2, t1: 1, leave: false })
+    emerges.current.set(top.id, { p: 1, from: kind === 'in' ? 'outside' : 'center', pivot: kind === 'in' ? pos.clone() : new THREE.Vector3() })
+    emergeTiming.current.set(top.id, kind === 'in' ? { t0: 0.3, t1: 1, leave: true } : { t0: 0, t1: 0.7, leave: true })
     flight.current = {
       t: 0,
       dur: prefersReducedMotion() ? 0.01 : kind === 'side' ? 1.8 : 1.7,
@@ -320,9 +324,13 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     f.t = Math.min(1, f.t + Math.min(dt, 0.25) / f.dur)
     // 블러: 줌과 함께 일정한 속도로 차올라 장면이 바뀌는 순간 최대 (첫 등장 줌에는 없음)
     if (f.kind !== 'intro') setBlur(BLUR_PEAK * f.t)
-    const em = f.layerId ? emerges.current.get(f.layerId) : undefined
     // 들어갈 땐 새 장면이 점에서 화면 크기로 보이기 시작할 무렵부터 자라나고, 나올 땐 처음부터 모여든다
-    if (em) em.p = em.from === 'center' ? THREE.MathUtils.smoothstep(f.t, 0.2, 1) : THREE.MathUtils.smoothstep(f.t, 0, 0.95)
+    emergeTiming.current.forEach((tm, lid) => {
+      const em = emerges.current.get(lid)
+      if (!em) return
+      const k = THREE.MathUtils.smoothstep(f.t, tm.t0, tm.t1)
+      em.p = tm.leave ? 1 - k : k
+    })
     const u = easeInOutCubic(f.t)
     const lz = THREE.MathUtils.lerp(Math.log(f.fromZ), Math.log(f.toZ), easeInOutSine(f.t)) - f.bump * Math.sin(Math.PI * f.t)
     cam.zoom = Math.exp(lz)
@@ -336,6 +344,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     if (f.t < 1) return
     flight.current = null
     emerges.current.clear()
+    emergeTiming.current.clear()
     // 장면이 바뀌는 지금이 가장 흐린 순간 → 여기서부터 천천히 초점이 돌아온다
     if (f.kind !== 'intro') settle.current = { t: 0, peak: BLUR_PEAK }
     setFlying(false)

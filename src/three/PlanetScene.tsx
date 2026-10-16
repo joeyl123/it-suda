@@ -5,7 +5,7 @@ import { planetProfile, seeded, systemProfile } from '../lib/cosmos'
 import { planetRestPosition } from '../lib/layout'
 import type { Session, Topic } from '../lib/sessions'
 import { cosmicToast } from '../lib/toast'
-import { Emerge, Glow, OrbitRing } from './common'
+import { Emerge, Fade, Glow, OrbitRing } from './common'
 import { RocketPad, Satellite, Ufo, type Launch } from './effects'
 import Planet from './Planet'
 import { useQuality } from '../lib/quality'
@@ -72,12 +72,13 @@ export default function PlanetScene({ session, topic, interactive, emerge }: Sce
         {extras.satellite && <Satellite radius={1.45 + profile.amp} tilt={profile.tilt + 0.5} />}
         {extras.ufo && <Ufo mode="orbit" span={1.75 + profile.amp} scale={0.11} />}
       </Emerge>
-      {interactive && (
+      {/* 멀리 보이는 이 태양계의 항성 — 들어올 땐 서서히 밝아지고 나갈 땐 서서히 사라진다 */}
+      <Fade source={emerge}>
         <group position={sunAt}>
           <Glow color={system.star.core} scale={5 * system.star.size} />
           <Glow color={system.corona} scale={12} opacity={0.5} />
         </group>
-      )}
+      </Fade>
     </>
   )
 }
