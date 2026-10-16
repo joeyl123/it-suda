@@ -72,13 +72,15 @@ export default function PlanetScene({ session, topic, interactive, emerge }: Sce
         {extras.satellite && <Satellite radius={1.45 + profile.amp} tilt={profile.tilt + 0.5} />}
         {extras.ufo && <Ufo mode="orbit" span={1.75 + profile.amp} scale={0.11} />}
       </Emerge>
-      {/* 멀리 보이는 이 태양계의 항성 — 들어올 땐 서서히 밝아지고 나갈 땐 서서히 사라진다 */}
-      <Fade source={emerge}>
-        <group position={sunAt}>
-          <Glow color={system.star.core} scale={5 * system.star.size} />
-          <Glow color={system.corona} scale={12} opacity={0.5} />
-        </group>
-      </Fade>
+      {/* 멀리 보이는 이 태양계의 항성 — 다른 주변 오브젝트처럼 행성에서 퍼져 나오며 밝아지고, 나갈 땐 오그라들며 사라진다 */}
+      <Emerge source={emerge}>
+        <Fade source={emerge}>
+          <group position={sunAt}>
+            <Glow color={system.star.core} scale={5 * system.star.size} />
+            <Glow color={system.corona} scale={12} opacity={0.5} />
+          </group>
+        </Fade>
+      </Emerge>
     </>
   )
 }
