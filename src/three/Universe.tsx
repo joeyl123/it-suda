@@ -16,7 +16,7 @@ import { OrbitControls, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { systemProfile } from '../lib/cosmos'
-import { childAnchor, extentOf, frameOf, galaxyOrder, systemLayout, viewFromPath, viewKey, type View } from '../lib/layout'
+import { childAnchor, extentOf, frameOf, galaxyOrder, systemLayout, viewFromPath, viewKey, type Frame, type View } from '../lib/layout'
 import { formatDate, pad2, searchSessions } from '../lib/sessions'
 import { prefersReducedMotion } from '../lib/zoom'
 import { stepQuality, useQuality } from '../lib/quality'
@@ -129,6 +129,8 @@ interface Flight {
   bump: number
   camOffset: THREE.Vector3
   layerId?: string
+  /** 도착할 장면의 은하 속 자리 (도착 후 배경 은하 위치 계산용) */
+  frame?: Frame
 }
 
 type Controls = { target: THREE.Vector3; update: () => void }
@@ -158,6 +160,18 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   layersRef.current = layers
   const groups = useRef(new Map<string, THREE.Group>())
   const flight = useRef<Flight | null>(null)
+  // 배경 은하: 지금 원점에 있는 장면이 은하 속 어디에 있는지(rootFrame)에 맞춰 은하를 뒤에 깐다.
+  // 은하 레이어가 화면에 있을 땐(은하 화면, 은하로 빠져나가는 비행) 숨겨서 겹치지 않게.
+  const rootFrame = useRef<Frame>(frameOf(target))
+  const backdrop = useRef<THREE.Group>(null)
+  const updateBackdrop = () => {
+    const g = backdrop.current
+    if (!g) return
+    const { c, k } = rootFrame.current
+    g.position.set(-c[0] / k, -c[1] / k, -c[2] / k)
+    g.scale.setScalar(1 / k)
+    g.visible = !layersRef.current.some((l) => l.view.kind === 'galaxy' && groups.current.get(l.id)?.visible !== false)
+  }
   const [flying, setFlying] = useState(false)
   const shift = useRef(shiftOf(mode, size.width, size.height))
   const top = layers[layers.length - 1]
@@ -237,6 +251,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       bump,
       camOffset: camera.position.clone().sub(controls.target),
       layerId: id,
+      frame: fb,
     }
     setFlying(true)
     onActive({ view: B, flying: true })
@@ -255,6 +270,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     cam.setViewOffset(size.width, size.height, -shift.current.x, shift.current.y, size.width, size.height)
     cam.updateProjectionMatrix()
 
+    updateBackdrop()
     const f = flight.current
     if (!f || !controls) return
     // 무거운 프레임(행성 생성 등)이 있어도 시간표대로 — 너무 큰 건너뜀만 막는다
@@ -285,6 +301,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
         g.scale.setScalar(1)
       } else g.visible = false
     })
+    if (f.frame) rootFrame.current = f.frame
+    updateBackdrop() // 같은 프레임에 은하 레이어 → 배경 은하로 넘겨받는다
     controls.update()
     setLayers([{ ...L, pos: [0, 0, 0], scale: 1, hide: undefined }])
     onActive({ view: L.view, flying: false })
@@ -306,6 +324,19 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
         autoRotate={top.view.kind === 'galaxy' && !flying && hovered === null}
         autoRotateSpeed={0.35}
       />
+      <group ref={backdrop} visible={false}>
+        <GalaxyScene
+          backdrop
+          layerId="backdrop"
+          matches={matches}
+          hovered={null}
+          hide={top.view.kind !== 'galaxy' ? `sys:${top.view.session.slug}` : undefined}
+          interactive={false}
+          frozen
+          onHover={onHover}
+          onSelect={onSelect}
+        />
+      </group>
       {layers.map((l, i) => {
         const last = i === layers.length - 1
         const props: SceneProps = {

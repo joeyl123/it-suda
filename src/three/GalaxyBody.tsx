@@ -91,8 +91,20 @@ export function TwinklePoints({ stars, opacity = 1, blending = THREE.AdditiveBle
 
 // ---------------------------------------------------------------- galaxy
 
+// 은하 화면과 배경 은하(태양계·행성 뒤)가 같은 별 데이터를 쓰므로 한 번만 만든다
+const galaxyCache = new Map<string, ReturnType<typeof buildGalaxyData>>()
+
 function useGalaxyData(radius: number, density: number) {
   return useMemo(() => {
+    const key = `${radius}|${density}`
+    let data = galaxyCache.get(key)
+    if (!data) galaxyCache.set(key, (data = buildGalaxyData(radius, density)))
+    return data
+  }, [radius, density])
+}
+
+function buildGalaxyData(radius: number, density: number) {
+  {
     // 화면 품질에 따라 별 개수를 줄인다 (lib/quality)
     const scaled = (x: number) => Math.max(1, Math.round(x * density))
     const rand = seeded('it-suda-galaxy')
@@ -191,7 +203,7 @@ function useGalaxyData(radius: number, density: number) {
     }
 
     return { disk, dust, young, nebulae, dwarf }
-  }, [radius, density])
+  }
 }
 
 export default function GalaxyBody({ radius, density = 1 }: { radius: number; density?: number }) {

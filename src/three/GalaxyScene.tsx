@@ -12,7 +12,8 @@ import type { SceneProps } from './Universe'
 
 /** 은하 장면 (은하 좌표). 태양계마다 앵커 `sys:<slug>`. */
 // 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
-export default function GalaxyScene({ layerId, matches, hovered, hide }: SceneProps & { matches: Set<string> }) {
+// backdrop: 태양계·행성 화면 뒤에 깔리는 은하 (본체와 별들만, 이스터에그 없음)
+export default function GalaxyScene({ layerId, matches, hovered, hide, backdrop = false }: SceneProps & { matches: Set<string>; backdrop?: boolean }) {
   const { settings } = useQuality()
   return (
     <>
@@ -31,10 +32,14 @@ export default function GalaxyScene({ layerId, matches, hovered, hide }: ScenePr
           />
         )
       })}
-      <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.55} />
-      <Astronaut span={GALAXY_RADIUS * 0.8} />
-      <SpaceWhale radius={GALAXY_RADIUS * 0.95} />
-      <DriftingAsteroids count={1} span={GALAXY_RADIUS} />
+      {!backdrop && (
+        <>
+          <Ufo mode="flyby" span={GALAXY_RADIUS * 0.9} scale={0.55} />
+          <Astronaut span={GALAXY_RADIUS * 0.8} />
+          <SpaceWhale radius={GALAXY_RADIUS * 0.95} />
+          <DriftingAsteroids count={1} span={GALAXY_RADIUS} />
+        </>
+      )}
     </>
   )
 }
