@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, type ThreeElements } from '@react-three/fiber'
 import * as THREE from 'three'
+import { motion } from './motion'
 import { seeded, type PlanetProfile, type PropKind, type PropSpec } from '../lib/cosmos'
 
 // ---------------------------------------------------------------- terrain noise
@@ -274,8 +275,9 @@ export default function Planet({
   useEffect(() => built.dispose, [built])
 
   useFrame((_, dt) => {
-    if (spinRef.current) spinRef.current.rotation.y += dt * speed
-    if (cloudRef.current) cloudRef.current.rotation.y += dt * speed * 1.5
+    const t = dt * motion.scale
+    if (spinRef.current) spinRef.current.rotation.y += t * speed
+    if (cloudRef.current) cloudRef.current.rotation.y += t * speed * 1.5
   })
 
   const ringColor = profile.biome.land[2]

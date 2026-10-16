@@ -8,14 +8,15 @@ import { Anchor, Emerge, Glow, OrbitRing } from './common'
 import { AsteroidBelt, Comet } from './effects'
 import Planet from './Planet'
 import { useQuality } from '../lib/quality'
+import { motion } from './motion'
 import type { SceneProps } from './Universe'
 
 /** 태양계 장면 (태양계 좌표). 행성마다 앵커 `p<번호>`. */
 // 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
-export default function SystemScene({ layerId, session, hovered, hide, frozen, emerge }: SceneProps & { session: Session }) {
+export default function SystemScene({ layerId, session, hovered, hide, emerge }: SceneProps & { session: Session }) {
   const { star, corona, seed } = systemProfile(session)
   const layout = systemLayout(session)
-  const paused = frozen || hovered !== null
+  const paused = hovered !== null // 비행 중 멈춤은 motion.scale이 맡는다
 
   return (
     <>
@@ -77,11 +78,13 @@ function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered }: OrbitingPro
   const ref = useRef<THREE.Group>(null)
   const body = useRef<THREE.Group>(null)
   const angle = useRef(slot.phase)
+  const run = useRef(1)
 
   useFrame((_, dt) => {
     const g = ref.current
     if (!g) return
-    if (!paused) angle.current += dt * slot.speed
+    run.current = THREE.MathUtils.damp(run.current, paused ? 0 : 1, 5, dt) // 호버로 멈출 때도 스르륵
+    angle.current += dt * slot.speed * run.current * motion.scale
     g.position.set(Math.cos(angle.current) * slot.orbit, 0, Math.sin(angle.current) * slot.orbit)
     // 착륙하는 행성은 그 자리에서 자라나는 진짜 행성 장면과 겹쳐지므로 감춘다
     if (body.current) body.current.visible = !hidden

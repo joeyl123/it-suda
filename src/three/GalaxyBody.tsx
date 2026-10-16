@@ -9,6 +9,7 @@ import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
 import { getGlowTexture } from './glow'
 import { Emerge, type EmergeSource } from './common'
+import { motion } from './motion'
 import { ARMS, armPoint } from '../lib/layout'
 
 // ---------------------------------------------------------------- twinkle points
@@ -270,7 +271,7 @@ function BlackHole() {
     return g
   }, [])
   useFrame((_, dt) => {
-    if (disk.current) disk.current.rotation.z += dt * 0.6
+    if (disk.current) disk.current.rotation.z += dt * 0.6 * motion.scale
   })
   return (
     <group>

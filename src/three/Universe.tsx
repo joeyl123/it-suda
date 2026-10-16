@@ -23,6 +23,7 @@ import { stepQuality, useQuality } from '../lib/quality'
 import { useSheet, type SheetState } from '../lib/ui'
 import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, syncAnchors, useHoverCursor, type EmergeSource, type EmergeState } from './common'
 import { ShootingStars, Warp } from './effects'
+import { motion } from './motion'
 import GalaxyScene from './GalaxyScene'
 import PlanetScene from './PlanetScene'
 import SystemScene from './SystemScene'
@@ -160,9 +161,12 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
    * 가벼움 모드·동작 줄이기에선 끈다.
    */
   const blurPx = useRef(0)
+  // 궤도·자전 배속 (motion.ts): 비행이 시작되면 멈추고, 초점이 다 돌아온 뒤 MOTION_RESUME초에 걸쳐 천천히 다시 돈다
+  const motionRamp = useRef(1)
+  const MOTION_RESUME = 1.1
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 4
-  const BLUR_SETTLE = 0.6 // 초점이 돌아오는 시간 (초)
+  const BLUR_SETTLE = 1.2 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
     if (v === blurPx.current) return
@@ -221,6 +225,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     started.current = true
     cam.zoom = base * 0.35
     cam.updateProjectionMatrix()
+    motionRamp.current = 0
+    motion.scale = 0
     flight.current = { t: 0, dur: 1.6, kind: 'intro', fromT: controls.target.clone(), toT: controls.target.clone(), fromZ: cam.zoom, toZ: base, bump: 0, camOffset: camera.position.clone().sub(controls.target) }
     setFlying(true)
   }, [controls]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -272,6 +278,9 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       { id, view: B, pos: pos.toArray() as [number, number, number], scale, hide: outOf },
     ])
     settle.current = null // 초점이 돌아오던 중이면 새 비행이 이어받는다
+    // 멈춤은 바로 — 들어갈 행성의 자리를 방금 잡았으므로 더 돌면 새 장면과 어긋난다
+    motionRamp.current = 0
+    motion.scale = 0
     // 도착할 장면 B: 들어갈 땐 중심에서 자라나고, 나올 땐 화면 밖에서 방금 떠나온 자리(B 좌표에서 A의 위치) 쪽으로 모여든다.
     // 떠나는 장면 A: 그 반대 — 들어갈 땐 목적지를 중심으로 화면 밖으로 밀려나고, 나올 땐 자기 중심으로 오그라든다.
     emerges.current.clear()
@@ -317,6 +326,12 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       st.t = Math.min(1, st.t + Math.min(dt, 0.1) / BLUR_SETTLE)
       setBlur(st.peak * (1 - st.t)) // 일정한 속도로 또렷해진다
       if (st.t >= 1) settle.current = null
+    }
+    // 비행도 초점 복귀도 끝났으면 궤도·자전이 천천히 다시 움직이기 시작한다 (뚝 출발하지 않게 smoothstep)
+    if (!flight.current && !settle.current && motionRamp.current < 1) {
+      motionRamp.current = Math.min(1, motionRamp.current + Math.min(dt, 0.1) / MOTION_RESUME)
+      const r = motionRamp.current
+      motion.scale = r * r * (3 - 2 * r)
     }
     const f = flight.current
     if (!f || !controls) return

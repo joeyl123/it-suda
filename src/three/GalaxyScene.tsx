@@ -6,6 +6,7 @@ import { GALAXY_RADIUS, galaxyOrder, systemPosition } from '../lib/layout'
 import type { Session } from '../lib/sessions'
 import { Anchor, Emerge, Glow, OrbitRing } from './common'
 import GalaxyBody from './GalaxyBody'
+import { motion } from './motion'
 import { useQuality } from '../lib/quality'
 import { Astronaut, DriftingAsteroids, SpaceWhale, Ufo } from './effects'
 import type { SceneProps } from './Universe'
@@ -70,17 +71,19 @@ function StarSystem({ layerId, session, index, hidden, dim, hovered }: SystemPro
     })
   }, [session])
   const reach = (planets.at(-1)?.orbit ?? 0.8) + 0.3
+  const time = useRef(0) // 전환 중엔 멈추는 이 태양계만의 시간 (motion)
 
-  useFrame(({ clock }, dt) => {
+  useFrame((_, dt) => {
     const g = group.current
     if (!g) return
     // 들어가는 중인 태양계는 그 자리에서 자라나는 진짜 태양계에 자리를 내준다
     const target = hidden ? 0.001 : (dim ? 0.65 : 1) * (hovered ? 1.35 : 1)
     g.scale.setScalar(THREE.MathUtils.damp(g.scale.x, target, hidden ? 14 : 8, dt))
+    time.current += dt * motion.scale
     planets.forEach((p, i) => {
       const m = planetRefs.current[i]
       if (!m) return
-      const a = p.phase + clock.elapsedTime * p.speed
+      const a = p.phase + time.current * p.speed
       m.position.set(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit)
     })
   })

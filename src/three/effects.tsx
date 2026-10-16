@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
+import { motion } from './motion'
 import { seeded } from '../lib/cosmos'
 import { ASTRONAUT_LINES, cosmicToast, pickLine, SATELLITE_LINES, UFO_LINES, WHALE_LINES } from '../lib/toast'
 import { getGlowTexture } from './glow'
@@ -621,7 +622,7 @@ export function AsteroidBelt({ inner, outer, seed, count = 280 }: { inner: numbe
     ;(mesh.material as THREE.Material).dispose()
   }, [mesh])
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 0.03
+    if (ref.current) ref.current.rotation.y += dt * 0.03 * motion.scale
   })
   return (
     <group ref={ref}>
@@ -659,7 +660,7 @@ export function Comet({ a, e, seed, tilt = 0.25 }: { a: number; e: number; seed:
   useFrame((_, dt) => {
     const s = st.current
     const r = (a * (1 - e * e)) / (1 + e * Math.cos(s.theta))
-    s.theta += (dt * 2.2) / (r * r) * a // 태양 가까이서 빨라진다 (케플러 제2법칙 흉내)
+    s.theta += ((dt * motion.scale * 2.2) / (r * r)) * a // 태양 가까이서 빨라진다 (케플러 제2법칙 흉내)
     tmp.p.set(Math.cos(s.theta) * r, 0, Math.sin(s.theta) * r)
     head.current?.position.copy(tmp.p)
     // 꼬리는 언제나 태양 반대쪽

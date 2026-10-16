@@ -9,6 +9,7 @@ import { Emerge, Glow, OrbitRing } from './common'
 import { RocketPad, Satellite, Ufo, type Launch } from './effects'
 import Planet from './Planet'
 import { useQuality } from '../lib/quality'
+import { motion } from './motion'
 import type { SceneProps } from './Universe'
 
 const MOON_COLORS = ['#c9c4bc', '#a8a29a', '#d8cbb0', '#9aa3ad']
@@ -85,8 +86,10 @@ export default function PlanetScene({ session, topic, interactive, emerge }: Sce
 
 function Moon({ orbit, size, speed, phase, tilt, color }: { orbit: number; size: number; speed: number; phase: number; tilt: number; color: string }) {
   const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    const a = phase + clock.elapsedTime * speed
+  const time = useRef(0)
+  useFrame((_, dt) => {
+    time.current += dt * motion.scale
+    const a = phase + time.current * speed
     ref.current?.position.set(Math.cos(a) * orbit, 0, Math.sin(a) * orbit)
   })
   return (
@@ -115,7 +118,7 @@ function Satellites({ color, count = 160 }: { color: string; count?: number }) {
     return g
   }, [color, count])
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 0.05
+    if (ref.current) ref.current.rotation.y += dt * 0.05 * motion.scale
   })
   return (
     <points ref={ref} geometry={geometry}>
