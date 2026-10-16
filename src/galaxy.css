@@ -357,34 +357,51 @@ html[data-quality='low'] .panel { background: rgba(22, 18, 34, 0.96); }
 .label-layer.is-hidden .sys-label.is-hover,
 .label-layer.is-hidden .planet-label.is-hover { opacity: 0; }
 
+/*
+ * 원 마커. 위치는 매 프레임 인라인 transform으로 옮기므로, 고리 모양과 등장 애니메이션은 ::before(고리)·::after(퍼지는 파동)에 둔다.
+ * 등장: 3D 장면이 자리 잡은 뒤 0.3초 늦게, 크게(1.8배)에서 제자리로 내려앉으며 나타난다. 사라질 땐 바로.
+ */
 .marker {
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--mark) 55%, transparent);
+  border: none;
   background: none;
   padding: 0;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.35s;
 }
-/* 바깥으로 퍼지는 고리: "눌러 볼 수 있어요" */
+.label-layer > .marker { transition: opacity 0.5s ease-out 0.3s; }
+.label-layer.is-hidden > .marker { opacity: 0; transition: opacity 0.2s; } /* 흐린(is-dim) 마커도 비행 중엔 숨김 */
+.marker::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--mark) 55%, transparent);
+  transition: border-color 0.2s, box-shadow 0.2s, scale 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s;
+}
+.label-layer.is-hidden > .marker::before { scale: 1.8; transition: scale 0s 0.2s; }
+/* 바깥으로 퍼지는 파동: "눌러 볼 수 있어요". 나타날 때마다 처음부터, 내려앉은 뒤에 시작 */
 .marker::after {
   content: '';
-  position: absolute; inset: -1.5px;
+  position: absolute; inset: 0;
   border-radius: 50%;
   border: 1.5px solid var(--mark);
   opacity: 0;
-  animation: marker-pulse 2.6s ease-out infinite;
+  animation: marker-pulse 3s ease-out 1s infinite;
 }
+.label-layer.is-hidden > .marker::after { animation: none; }
 @keyframes marker-pulse {
-  0% { transform: scale(1); opacity: 0.55; }
-  70%, 100% { transform: scale(1.45); opacity: 0; }
+  0% { transform: scale(1); opacity: 0.7; }
+  75%, 100% { transform: scale(1.75); opacity: 0; }
 }
-.marker.is-hover, .marker:focus-visible {
+.marker.is-hover::before, .marker:focus-visible::before {
   border-color: var(--mark);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--mark) 18%, transparent), 0 0 18px color-mix(in srgb, var(--mark) 45%, transparent);
-  outline: none;
 }
-.marker.is-hover::after { animation-duration: 1.3s; }
+.marker:focus-visible { outline: none; }
+.marker.is-hover::after { animation-duration: 1.5s; animation-delay: 0s; }
 .marker.is-dim { opacity: 0.3; }
 .marker.is-dim::after { animation: none; }
 html[data-quality='low'] .marker::after { animation: none; }
-@media (prefers-reduced-motion: reduce) { .marker::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .marker::after { animation: none; }
+  .label-layer.is-hidden > .marker::before { scale: 1; }
+}
