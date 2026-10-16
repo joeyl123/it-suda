@@ -160,7 +160,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 4
-  const BLUR_RISE = 0.75 // 줌이 1/4쯤 진행됐을 때부터 서서히 흐려진다
+  const BLUR_CURVE = 2.5 // 차오르는 J곡선의 휨 (클수록 처음이 더 느리다)
   const BLUR_SETTLE = 2.4 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
@@ -300,11 +300,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     if (!f || !controls) return
     // 무거운 프레임(행성 생성 등)이 있어도 시간표대로 — 너무 큰 건너뜀만 막는다
     f.t = Math.min(1, f.t + Math.min(dt, 0.25) / f.dur)
-    // 블러: 줌 하는 동안엔 없음. 줌이 끝나 갈 때만 차오른다 (첫 등장 줌에는 없음)
-    if (f.kind !== 'intro') {
-      const rise = THREE.MathUtils.smoothstep(f.t, 1 - BLUR_RISE, 1)
-      setBlur(BLUR_PEAK * rise)
-    }
+    // 블러: 줌과 함께 J자로 — 처음엔 아주 살짝, 갈수록 빠르게 차올라 장면이 바뀌는 순간 최대 (첫 등장 줌에는 없음)
+    if (f.kind !== 'intro') setBlur(BLUR_PEAK * f.t ** BLUR_CURVE)
     const u = easeInOutCubic(f.t)
     const lz = THREE.MathUtils.lerp(Math.log(f.fromZ), Math.log(f.toZ), easeInOutSine(f.t)) - f.bump * Math.sin(Math.PI * f.t)
     cam.zoom = Math.exp(lz)
