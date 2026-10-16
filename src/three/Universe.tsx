@@ -160,8 +160,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 6
-  const BLUR_RISE = 0.12 // 비행 마지막 12% 동안 흐려지기 시작
-  const BLUR_SETTLE = 1.4 // 초점이 돌아오는 시간 (초)
+  const BLUR_RISE = 0.3 // 비행 마지막 30% 동안 서서히 흐려진다
+  const BLUR_SETTLE = 2.4 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
     if (v === blurPx.current) return
@@ -293,7 +293,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     if (settle.current) {
       const st = settle.current
       st.t = Math.min(1, st.t + Math.min(dt, 0.1) / BLUR_SETTLE)
-      setBlur(st.peak * (1 - st.t) ** 2.2) // 처음엔 빠르게 풀리고, 끝으로 갈수록 아주 천천히 또렷해진다
+      setBlur(st.peak * (1 - st.t) ** 1.8) // 처음엔 빠르게 풀리고, 끝으로 갈수록 아주 천천히 또렷해진다
       if (st.t >= 1) settle.current = null
     }
     const f = flight.current
