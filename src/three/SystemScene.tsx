@@ -11,7 +11,8 @@ import { useQuality } from '../lib/quality'
 import type { SceneProps } from './Universe'
 
 /** 태양계 장면 (태양계 좌표). 행성마다 앵커 `p<번호>`. */
-export default function SystemScene({ layerId, session, hovered, hide, interactive, frozen, onHover, onSelect }: SceneProps & { session: Session }) {
+// 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
+export default function SystemScene({ layerId, session, hovered, hide, frozen }: SceneProps & { session: Session }) {
   const { star, corona, seed } = systemProfile(session)
   const layout = systemLayout(session)
   const paused = frozen || hovered !== null
@@ -30,9 +31,6 @@ export default function SystemScene({ layerId, session, hovered, hide, interacti
               hidden={hide === p.id}
               paused={paused}
               hovered={lit}
-              interactive={interactive}
-              onHover={(on) => onHover(on ? p.id : null)}
-              onSelect={() => onSelect(`/sessions/${session.slug}/${p.topic.index}`)}
             />
           </group>
         )
@@ -67,12 +65,9 @@ interface OrbitingProps {
   hidden: boolean
   paused: boolean
   hovered: boolean
-  interactive: boolean
-  onHover: (on: boolean) => void
-  onSelect: () => void
 }
 
-function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, onHover, onSelect }: OrbitingProps) {
+function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered }: OrbitingProps) {
   const quality = useQuality().settings
   const ref = useRef<THREE.Group>(null)
   const body = useRef<THREE.Group>(null)
@@ -97,18 +92,6 @@ function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, 
           propBudget={quality.system.props}
           cloudBudget={quality.system.clouds}
           spin={slot.profile.spin * 4}
-          {...(interactive && {
-            onPointerOver: (e) => {
-              e.stopPropagation()
-              onHover(true)
-            },
-            onPointerOut: () => onHover(false),
-            onClick: (e) => {
-              e.stopPropagation()
-              if (e.delta > 6) return // 드래그였음
-              onSelect()
-            },
-          })}
         />
         {hovered && <Glow color={slot.profile.biome.glow} scale={4.2} opacity={0.5} />}
       </group>

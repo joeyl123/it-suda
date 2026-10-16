@@ -11,7 +11,8 @@ import { Astronaut, DriftingAsteroids, SpaceWhale, Ufo } from './effects'
 import type { SceneProps } from './Universe'
 
 /** 은하 장면 (은하 좌표). 태양계마다 앵커 `sys:<slug>`. */
-export default function GalaxyScene({ layerId, matches, hovered, hide, interactive, onHover, onSelect }: SceneProps & { matches: Set<string> }) {
+// 호버·클릭은 DOM 원 마커(Universe Labels)가 맡는다. 3D 쪽에서도 받으면 둘이 서로 호버를 꺼 버린다.
+export default function GalaxyScene({ layerId, matches, hovered, hide }: SceneProps & { matches: Set<string> }) {
   const { settings } = useQuality()
   return (
     <>
@@ -27,9 +28,6 @@ export default function GalaxyScene({ layerId, matches, hovered, hide, interacti
             hidden={hide === id}
             dim={!matches.has(s.slug)}
             hovered={hovered === id}
-            interactive={interactive}
-            onHover={(on) => onHover(on ? id : null)}
-            onSelect={() => onSelect(`/sessions/${s.slug}`)}
           />
         )
       })}
@@ -48,12 +46,9 @@ interface SystemProps {
   hidden: boolean
   dim: boolean
   hovered: boolean
-  interactive: boolean
-  onHover: (on: boolean) => void
-  onSelect: () => void
 }
 
-function StarSystem({ layerId, session, index, hidden, dim, hovered, interactive, onHover, onSelect }: SystemProps) {
+function StarSystem({ layerId, session, index, hidden, dim, hovered }: SystemProps) {
   const group = useRef<THREE.Group>(null)
   const planetRefs = useRef<(THREE.Mesh | null)[]>([])
   const { star, corona } = systemProfile(session, index + 1)
@@ -100,23 +95,6 @@ function StarSystem({ layerId, session, index, hidden, dim, hovered, interactive
             </mesh>
           </group>
         ))}
-        {interactive && (
-          <mesh
-            onPointerOver={(e) => {
-              e.stopPropagation()
-              onHover(true)
-            }}
-            onPointerOut={() => onHover(false)}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (e.delta > 6) return // 드래그였음
-              onSelect()
-            }}
-          >
-            <sphereGeometry args={[reach, 16, 16]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
-        )}
       </group>
       <Anchor id={`${layerId}::sys:${session.slug}`} radius={0.85} offsetY={34} />
     </group>
