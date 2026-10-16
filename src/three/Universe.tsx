@@ -150,6 +150,16 @@ interface WorldProps {
 }
 
 function World({ target, mode, matches, hovered, onHover, onSelect, onActive, onReady }: WorldProps) {
+  const quality = useQuality()
+  const gl = useThree((st) => st.gl)
+  /** 비행 중 3D만 흐리게 (글자 패널은 그대로). 가벼움 모드·동작 줄이기에선 끈다 */
+  const blurPx = useRef(0)
+  const setBlur = (px: number) => {
+    const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
+    if (v === blurPx.current) return
+    blurPx.current = v
+    gl.domElement.style.filter = v > 0.2 ? `blur(${v}px)` : ''
+  }
   const sheet = useSheet()
   const readySent = useRef(false)
   const { camera, size } = useThree()
@@ -275,6 +285,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     if (!f || !controls) return
     // 무거운 프레임(행성 생성 등)이 있어도 시간표대로 — 너무 큰 건너뜀만 막는다
     f.t = Math.min(1, f.t + Math.min(dt, 0.25) / f.dur)
+    // 블러: 처음 등장은 흐릿하게 시작해 또렷해지고, 장면 사이 비행은 한가운데서 가장 흐리다 (렌즈 초점이 다시 잡히듯)
+    setBlur(f.kind === 'intro' ? 6 * (1 - f.t) ** 2 : (f.kind === 'side' ? 5 : 7) * Math.sin(Math.PI * f.t) ** 1.5)
     const u = easeInOutCubic(f.t)
     const lz = THREE.MathUtils.lerp(Math.log(f.fromZ), Math.log(f.toZ), easeInOutSine(f.t)) - f.bump * Math.sin(Math.PI * f.t)
     cam.zoom = Math.exp(lz)
@@ -287,6 +299,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
 
     if (f.t < 1) return
     flight.current = null
+    setBlur(0)
     setFlying(false)
     const L = layersRef.current.find((l) => l.id === f.layerId)
     if (!L) return
