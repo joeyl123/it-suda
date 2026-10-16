@@ -160,7 +160,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
   const blurPx = useRef(0)
   const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
   const BLUR_PEAK = 6
-  const BLUR_RISE = 0.3 // 비행 마지막 30% 동안 서서히 흐려진다
+  const BLUR_RISE = 0.25 // 줌이 3/4쯤 진행됐을 때부터 서서히 흐려진다
   const BLUR_SETTLE = 2.4 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
