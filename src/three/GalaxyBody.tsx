@@ -8,7 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
 import { getGlowTexture } from './glow'
-import { Emerge, Fade, type EmergeSource } from './common'
+import { Emerge, type EmergeSource } from './common'
 import { ARMS, armPoint } from '../lib/layout'
 
 // ---------------------------------------------------------------- twinkle points
@@ -210,7 +210,7 @@ function buildGalaxyData(radius: number, density: number) {
 /**
  * @param starsOnly 태양계·행성 화면의 배경용: 별 점만 (블랙홀·성운·먼지띠·배경 은하 없이 가볍게)
  * @param emerge 장면 전환 때 별 점 말고 나머지(먼지띠·성운·블랙홀·먼 은하)를 다른 장면 오브젝트처럼
- * 화면 밖에서 모여들거나 밀려나게(Emerge) 하면서 서서히 나타내고 감춘다(Fade). 별 점은 배경 은하와 넘겨받으므로 그대로.
+ * 화면 밖에서 모여들거나 밀려나게 하면서 서서히 나타내고 감춘다(Emerge). 별 점은 배경 은하와 넘겨받으므로 그대로.
  */
 export default function GalaxyBody({ radius, density = 1, starsOnly = false, emerge }: { radius: number; density?: number; starsOnly?: boolean; emerge?: EmergeSource }) {
   const spin = useRef<THREE.Group>(null)
@@ -231,8 +231,7 @@ export default function GalaxyBody({ radius, density = 1, starsOnly = false, eme
       {/* Emerge는 레이어 좌표의 pivot을 쓰므로 회전하는 그룹 바깥에 둔다 */}
       {!starsOnly && (
         <Emerge source={emerge}>
-          <Fade source={emerge}>
-            <group ref={extraSpin}>
+          <group ref={extraSpin}>
               <TwinklePoints stars={data.dust} opacity={0.55} blending={THREE.NormalBlending} />
               {data.nebulae.map((n, i) => (
                 <sprite key={i} position={n.p} scale={[n.scale, n.scale * 0.7, 1]}>
@@ -242,10 +241,9 @@ export default function GalaxyBody({ radius, density = 1, starsOnly = false, eme
               <sprite position={data.dwarf} scale={[7, 4, 1]}>
                 <spriteMaterial map={getGlowTexture()} color="#cfe0ff" transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
               </sprite>
-            </group>
-            <BlackHole />
-            <DistantGalaxies />
-          </Fade>
+          </group>
+          <BlackHole />
+          <DistantGalaxies />
         </Emerge>
       )}
     </>

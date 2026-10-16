@@ -153,9 +153,44 @@ export type EmergeSource = () => EmergeState | undefined
 const EMERGE_CENTER_START = 0.06
 const EMERGE_OUTSIDE_START = 2.6
 
-/** 감싼 오브젝트를 EmergeState에 따라 모으거나 펼친다. core는 중심 천체 — 안으로 들어갈 땐 그대로 둔다(이어지는 느낌). */
+/**
+ * 감싼 오브젝트의 불투명도를 v(0~1)배로. 처음 만질 때 원래 불투명도·transparent를 기억해 두고,
+ * v가 1로 돌아오면 그대로 되돌린다 (불투명한 재질을 계속 transparent로 두면 그리는 순서가 꼬일 수 있어서).
+ */
+function useOpacity() {
+  const base = useRef(new WeakMap<THREE.Material, { o: number; t: boolean }>())
+  const last = useRef(1)
+  return (g: THREE.Group, v: number) => {
+    if (v === last.current) return
+    last.current = v
+    g.visible = v > 0.01
+    g.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+      if (!m) return
+      for (const mat of Array.isArray(m) ? m : [m]) {
+        const u = (mat as THREE.ShaderMaterial).uniforms?.uOpacity
+        let b = base.current.get(mat)
+        if (!b) base.current.set(mat, (b = { o: u ? u.value : mat.opacity, t: mat.transparent }))
+        if (u) u.value = b.o * v
+        else mat.opacity = b.o * v
+        const wantT = b.t || v < 1
+        if (!u && mat.transparent !== wantT) {
+          mat.transparent = wantT
+          mat.needsUpdate = true
+        }
+      }
+    })
+  }
+}
+
+/**
+ * 감싼 오브젝트를 EmergeState에 따라 모으거나 펼치고, 같은 진행도로 서서히 나타내고 감춘다.
+ * 중심 가까이 있는 것(예: 들어가는 행성 바로 옆의 소행성대)은 크기 변화만으로는 거의 안 움직이므로 페이드가 꼭 필요하다.
+ * core는 중심 천체 — 안으로 들어갈 땐 그대로 둔다(이어지는 느낌).
+ */
 export function Emerge({ source, core = false, children }: { source?: EmergeSource; core?: boolean; children: ReactNode }) {
   const ref = useRef<THREE.Group>(null)
+  const opacity = useOpacity()
   useFrame(() => {
     const g = ref.current
     if (!g) return
@@ -165,47 +200,13 @@ export function Emerge({ source, core = false, children }: { source?: EmergeSour
         g.scale.setScalar(1)
         g.position.set(0, 0, 0)
       }
+      opacity(g, 1)
       return
     }
     const s = st.from === 'center' ? THREE.MathUtils.lerp(EMERGE_CENTER_START, 1, st.p) : THREE.MathUtils.lerp(EMERGE_OUTSIDE_START, 1, st.p)
     g.scale.setScalar(s)
     g.position.copy(st.pivot).multiplyScalar(1 - s) // pivot을 중심으로 늘이고 줄인다
-  })
-  return <group ref={ref}>{children}</group>
-}
-
-/**
- * 감싼 오브젝트의 불투명도를 EmergeState 진행도(p)에 맞춰 올리고 내린다 — 크기로 움직이면 어색한 것들
- * (블랙홀·성운·먼지띠·먼 항성 빛)에 쓴다. 상태가 없으면 원래 불투명도.
- */
-export function Fade({ source, children }: { source?: EmergeSource; children: ReactNode }) {
-  const ref = useRef<THREE.Group>(null)
-  const base = useRef(new WeakMap<THREE.Material, number>())
-  const last = useRef(1)
-  useFrame(() => {
-    const g = ref.current
-    if (!g) return
-    const v = source?.()?.p ?? 1
-    if (v === last.current) return
-    last.current = v
-    g.visible = v > 0.01
-    g.traverse((o) => {
-      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
-      if (!m) return
-      for (const mat of Array.isArray(m) ? m : [m]) {
-        const u = (mat as THREE.ShaderMaterial).uniforms?.uOpacity
-        if (!base.current.has(mat)) {
-          base.current.set(mat, u ? u.value : mat.opacity)
-          if (!u && !mat.transparent) {
-            mat.transparent = true
-            mat.needsUpdate = true
-          }
-        }
-        const b = base.current.get(mat)!
-        if (u) u.value = b * v
-        else mat.opacity = b * v
-      }
-    })
+    opacity(g, st.p)
   })
   return <group ref={ref}>{children}</group>
 }
