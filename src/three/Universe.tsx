@@ -152,8 +152,16 @@ interface WorldProps {
 function World({ target, mode, matches, hovered, onHover, onSelect, onActive, onReady }: WorldProps) {
   const quality = useQuality()
   const gl = useThree((st) => st.gl)
-  /** 비행 중 3D만 흐리게 (글자 패널은 그대로). 가벼움 모드·동작 줄이기에선 끈다 */
+  /**
+   * 장면이 바뀌는 순간의 블러 (글자 패널은 그대로). 줌 하는 동안엔 또렷하게 두고,
+   * 줌이 끝나 갈 때 살짝 흐려지기 시작해 장면이 바뀌는 프레임에 가장 흐리고, 그 뒤 천천히 또렷해진다.
+   * 가벼움 모드·동작 줄이기에선 끈다.
+   */
   const blurPx = useRef(0)
+  const settle = useRef<{ t: number; peak: number } | null>(null) // 장면이 바뀐 뒤 초점이 돌아오는 중
+  const BLUR_PEAK = 6
+  const BLUR_RISE = 0.12 // 비행 마지막 12% 동안 흐려지기 시작
+  const BLUR_SETTLE = 1.4 // 초점이 돌아오는 시간 (초)
   const setBlur = (px: number) => {
     const v = quality.level === 'low' || prefersReducedMotion() ? 0 : Math.round(px * 10) / 10
     if (v === blurPx.current) return
@@ -250,6 +258,7 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
       ...ls.filter((l) => l.id !== id).map((l) => (l.id === top.id ? { ...l, hide: into } : l)),
       { id, view: B, pos: pos.toArray() as [number, number, number], scale, hide: outOf },
     ])
+    settle.current = null // 초점이 돌아오던 중이면 새 비행이 이어받는다
     flight.current = {
       t: 0,
       dur: prefersReducedMotion() ? 0.01 : kind === 'side' ? 1.8 : 1.7,
@@ -281,12 +290,21 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
     cam.updateProjectionMatrix()
 
     updateBackdrop()
+    if (settle.current) {
+      const st = settle.current
+      st.t = Math.min(1, st.t + Math.min(dt, 0.1) / BLUR_SETTLE)
+      setBlur(st.peak * (1 - st.t) ** 2.2) // 처음엔 빠르게 풀리고, 끝으로 갈수록 아주 천천히 또렷해진다
+      if (st.t >= 1) settle.current = null
+    }
     const f = flight.current
     if (!f || !controls) return
     // 무거운 프레임(행성 생성 등)이 있어도 시간표대로 — 너무 큰 건너뜀만 막는다
     f.t = Math.min(1, f.t + Math.min(dt, 0.25) / f.dur)
-    // 블러: 처음 등장은 흐릿하게 시작해 또렷해지고, 장면 사이 비행은 한가운데서 가장 흐리다 (렌즈 초점이 다시 잡히듯)
-    setBlur(f.kind === 'intro' ? 6 * (1 - f.t) ** 2 : (f.kind === 'side' ? 5 : 7) * Math.sin(Math.PI * f.t) ** 1.5)
+    // 블러: 줌 하는 동안엔 없음. 줌이 끝나 갈 때만 차오른다 (첫 등장 줌에는 없음)
+    if (f.kind !== 'intro') {
+      const rise = THREE.MathUtils.smoothstep(f.t, 1 - BLUR_RISE, 1)
+      setBlur(BLUR_PEAK * rise)
+    }
     const u = easeInOutCubic(f.t)
     const lz = THREE.MathUtils.lerp(Math.log(f.fromZ), Math.log(f.toZ), easeInOutSine(f.t)) - f.bump * Math.sin(Math.PI * f.t)
     cam.zoom = Math.exp(lz)
@@ -299,7 +317,8 @@ function World({ target, mode, matches, hovered, onHover, onSelect, onActive, on
 
     if (f.t < 1) return
     flight.current = null
-    setBlur(0)
+    // 장면이 바뀌는 지금이 가장 흐린 순간 → 여기서부터 천천히 초점이 돌아온다
+    if (f.kind !== 'intro') settle.current = { t: 0, peak: BLUR_PEAK }
     setFlying(false)
     const L = layersRef.current.find((l) => l.id === f.layerId)
     if (!L) return
