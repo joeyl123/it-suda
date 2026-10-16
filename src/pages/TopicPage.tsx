@@ -4,6 +4,7 @@ import Prose from '../components/Prose'
 import DepthNav from '../components/DepthNav'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { getSession, pad2 } from '../lib/sessions'
+import { useTitle } from '../lib/useTitle'
 import NotFoundPage from './NotFoundPage'
 
 /** 행성 화면: 3D 행성(뒤 배경 Universe) 위에 오른쪽 패널. */
@@ -11,6 +12,7 @@ export default function TopicPage() {
   const { slug, topic: topicParam } = useParams()
   const session = slug ? getSession(slug) : undefined
   const topic = session?.topicList.find((t) => String(t.index) === topicParam)
+  useTitle(!topic || !session ? '궤도를 벗어났어요' : `${topic.title} · ${session.title}`)
   if (!session || !topic) return <NotFoundPage />
 
   const profile = planetProfile(session, topic)

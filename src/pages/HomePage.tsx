@@ -5,12 +5,14 @@ import TagChip from '../components/TagChip'
 import DepthNav from '../components/DepthNav'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
+import { useTitle } from '../lib/useTitle'
 
 const webgl = hasWebGL()
 
 /** 은하 화면: 3D 은하(뒤 배경 Universe) 위에 소개 카드 하나. 목록 보기는 가운데 패널. */
 export default function HomePage() {
   const [params, setParams] = useSearchParams()
+  useTitle()
   const query = params.get('q') ?? ''
   const tag = params.get('tag')
   const view = !webgl || params.get('view') === 'list' ? 'list' : 'galaxy'

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useTitle } from '../lib/useTitle'
 
 export default function NotFoundPage() {
+  useTitle('궤도를 벗어났어요')
   return (
     <div className="panel panel-center empty">
       <h1>궤도를 벗어났어요</h1>

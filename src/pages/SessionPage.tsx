@@ -5,12 +5,14 @@ import DepthNav from '../components/DepthNav'
 import Prose from '../components/Prose'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2 } from '../lib/sessions'
+import { useTitle } from '../lib/useTitle'
 import NotFoundPage from './NotFoundPage'
 
 /** 태양계 화면: 3D 태양계(뒤 배경 Universe) 위에 오른쪽 패널. */
 export default function SessionPage() {
   const { slug } = useParams()
   const session = slug ? getSession(slug) : undefined
+  useTitle(!session ? '궤도를 벗어났어요' : `${session.number !== undefined ? `No.${pad2(session.number)} ` : ''}${session.title}`)
   if (!session) return <NotFoundPage />
 
   const first = session.topicList[0]

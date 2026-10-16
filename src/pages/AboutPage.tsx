@@ -1,4 +1,7 @@
+import { useTitle } from '../lib/useTitle'
+
 export default function AboutPage() {
+  useTitle('소개')
   return (
     <section className="panel panel-center prose about">
       <p className="label" style={{ textAlign: 'center' }}>ABOUT</p>
