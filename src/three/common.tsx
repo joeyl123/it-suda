@@ -69,9 +69,14 @@ export function bindLabel(id: string) {
   }
 }
 
-export function Anchor({ id, offsetY = 0 }: { id: string; offsetY?: number }) {
+/**
+ * @param radius 대상의 반지름(이 장면 좌표). 주면 화면상 크기에 맞는 원 마커(`id|marker`)를 함께 움직이고,
+ *               라벨은 그 원 바로 아래(offsetY만큼 더)에 둔다.
+ */
+export function Anchor({ id, offsetY = 0, radius }: { id: string; offsetY?: number; radius?: number }) {
   const ref = useRef<THREE.Group>(null)
   const v = useMemo(() => new THREE.Vector3(), [])
+  const scale = useMemo(() => new THREE.Vector3(), [])
   useEffect(() => {
     const obj = ref.current
     if (!obj) return
@@ -82,12 +87,26 @@ export function Anchor({ id, offsetY = 0 }: { id: string; offsetY?: number }) {
   }, [id])
   useFrame(({ camera, size }) => {
     const el = registry.els.get(id)
-    if (!el || !ref.current) return
+    const marker = registry.els.get(id + '|marker')
+    if ((!el && !marker) || !ref.current) return
     ref.current.getWorldPosition(v).project(camera)
     const x = ((v.x + 1) / 2) * size.width
     const y = ((1 - v.y) / 2) * size.height
-    el.style.transform = `translate(${x}px, ${y + offsetY}px) translate(-50%, -50%)`
-    el.style.visibility = Math.abs(v.z) < 1 ? 'visible' : 'hidden'
+    const visibility = Math.abs(v.z) < 1 ? 'visible' : 'hidden'
+    let r = 0
+    if (radius) {
+      ref.current.getWorldScale(scale)
+      r = Math.max(14, radius * scale.x * (camera as THREE.OrthographicCamera).zoom)
+    }
+    if (marker) {
+      marker.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
+      marker.style.width = marker.style.height = `${Math.round(r * 2)}px`
+      marker.style.visibility = visibility
+    }
+    if (el) {
+      el.style.transform = `translate(${x}px, ${y + r + offsetY}px) translate(-50%, -50%)`
+      el.style.visibility = visibility
+    }
   })
   return <group ref={ref} />
 }

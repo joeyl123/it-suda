@@ -112,7 +112,7 @@ function OrbitingPlanet({ slot, anchorId, hidden, paused, hovered, interactive, 
         />
         {hovered && <Glow color={slot.profile.biome.glow} scale={4.2} opacity={0.5} />}
       </group>
-      <Anchor id={anchorId} offsetY={30 + slot.size * 20} />
+      <Anchor id={anchorId} radius={slot.size * (slot.profile.ring ? 1.75 : 1.3)} offsetY={18} />
     </group>
   )
 }

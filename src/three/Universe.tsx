@@ -348,31 +348,41 @@ interface LabelsProps {
 
 function Labels({ view, hidden, hovered, matches, onHover, onSelect }: LabelsProps) {
   const lid = viewKey(view)
-  const hover = (id: string) => ({ onPointerEnter: () => onHover(id), onPointerLeave: () => onHover(null) })
+  // 원 마커가 클릭 대상, 이름표는 호버(또는 키보드 포커스) 때만 보인다
+  const target = (id: string, path: string, name: string, extra: string, style: CSSProperties) => (
+    <button
+      key={id + '|marker'}
+      ref={bindLabel(`${lid}::${id}|marker`)}
+      type="button"
+      tabIndex={hidden ? -1 : 0}
+      aria-label={name}
+      className={`marker${hovered === id ? ' is-hover' : ''}${extra}`}
+      style={style}
+      onClick={() => onSelect(path)}
+      onPointerEnter={() => onHover(id)}
+      onPointerLeave={() => onHover(null)}
+      onFocus={() => onHover(id)}
+      onBlur={() => onHover(null)}
+    />
+  )
 
   if (view.kind === 'galaxy') {
     return (
       <div className={`label-layer${hidden ? ' is-hidden' : ''}`}>
-        {galaxyOrder.map((s, i) => {
+        {galaxyOrder.flatMap((s, i) => {
           const id = `sys:${s.slug}`
-          return (
-            <button
-              key={s.slug}
-              ref={bindLabel(`${lid}::${id}`)}
-              type="button"
-              tabIndex={hidden ? -1 : 0}
-              className={`sys-label${hovered === id ? ' is-hover' : ''}${matches.has(s.slug) ? '' : ' is-dim'}`}
-              style={{ '--corona': systemProfile(s, i + 1).corona } as CSSProperties}
-              onClick={() => onSelect(`/sessions/${s.slug}`)}
-              {...hover(id)}
-            >
+          const style = { '--corona': systemProfile(s, i + 1).corona, '--mark': 'var(--corona)' } as CSSProperties
+          const dim = matches.has(s.slug) ? '' : ' is-dim'
+          return [
+            target(id, `/sessions/${s.slug}`, `No.${s.number ?? ''} ${s.title}`, dim, style),
+            <div key={id} ref={bindLabel(`${lid}::${id}`)} aria-hidden="true" className={`sys-label${hovered === id ? ' is-hover' : ''}${dim}`} style={style}>
               <span className="sys-no">No.{s.number !== undefined ? pad2(s.number) : '··'}</span>
               <span className="sys-title">{s.title}</span>
               <span className="sys-meta">
                 {formatDate(s.date)} · 행성 {s.topicList.length}개
               </span>
-            </button>
-          )
+            </div>,
+          ]
         })}
       </div>
     )
@@ -381,21 +391,16 @@ function Labels({ view, hidden, hovered, matches, onHover, onSelect }: LabelsPro
   if (view.kind === 'system') {
     return (
       <div className={`label-layer${hidden ? ' is-hidden' : ''}`}>
-        {systemLayout(view.session).planets.map((p) => (
-          <button
-            key={p.id}
-            ref={bindLabel(`${lid}::${p.id}`)}
-            type="button"
-            tabIndex={hidden ? -1 : 0}
-            className={`planet-label${hovered === p.id ? ' is-hover' : ''}`}
-            style={{ '--glow': p.profile.biome.glow } as CSSProperties}
-            onClick={() => onSelect(`/sessions/${view.session.slug}/${p.topic.index}`)}
-            {...hover(p.id)}
-          >
-            <span className="planet-no">{pad2(p.topic.index)}</span>
-            <span>{p.topic.title}</span>
-          </button>
-        ))}
+        {systemLayout(view.session).planets.flatMap((p) => {
+          const style = { '--glow': p.profile.biome.glow, '--mark': 'var(--glow)' } as CSSProperties
+          return [
+            target(p.id, `/sessions/${view.session.slug}/${p.topic.index}`, `행성 ${p.topic.index} ${p.topic.title}`, '', style),
+            <div key={p.id} ref={bindLabel(`${lid}::${p.id}`)} aria-hidden="true" className={`planet-label${hovered === p.id ? ' is-hover' : ''}`} style={style}>
+              <span className="planet-no">{pad2(p.topic.index)}</span>
+              <span>{p.topic.title}</span>
+            </div>,
+          ]
+        })}
       </div>
     )
   }

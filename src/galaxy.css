@@ -347,3 +347,44 @@ html[data-quality='low'] .panel { background: rgba(22, 18, 34, 0.96); }
   .planet-label { font-size: 12px; }
   .quality-btn { width: 30px; height: 30px; }
 }
+
+/* ---------- 클릭할 수 있는 별·행성: 원 마커 + 호버 때만 이름표 ---------- */
+/* 이름표는 평소엔 숨기고, 별/행성이나 원에 마우스를 올리면(또는 키보드 포커스) 나타난다 */
+.label-layer .sys-label,
+.label-layer .planet-label { opacity: 0; pointer-events: none; transform-origin: center; }
+.label-layer .sys-label.is-hover,
+.label-layer .planet-label.is-hover { opacity: 1; }
+.label-layer.is-hidden .sys-label.is-hover,
+.label-layer.is-hidden .planet-label.is-hover { opacity: 0; }
+
+.marker {
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--mark) 55%, transparent);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.35s;
+}
+/* 바깥으로 퍼지는 고리: "눌러 볼 수 있어요" */
+.marker::after {
+  content: '';
+  position: absolute; inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--mark);
+  opacity: 0;
+  animation: marker-pulse 2.6s ease-out infinite;
+}
+@keyframes marker-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  70%, 100% { transform: scale(1.45); opacity: 0; }
+}
+.marker.is-hover, .marker:focus-visible {
+  border-color: var(--mark);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--mark) 18%, transparent), 0 0 18px color-mix(in srgb, var(--mark) 45%, transparent);
+  outline: none;
+}
+.marker.is-hover::after { animation-duration: 1.3s; }
+.marker.is-dim { opacity: 0.3; }
+.marker.is-dim::after { animation: none; }
+html[data-quality='low'] .marker::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { .marker::after { animation: none; } }

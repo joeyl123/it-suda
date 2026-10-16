@@ -118,7 +118,7 @@ function StarSystem({ layerId, session, index, hidden, dim, hovered, interactive
           </mesh>
         )}
       </group>
-      <Anchor id={`${layerId}::sys:${session.slug}`} offsetY={64} />
+      <Anchor id={`${layerId}::sys:${session.slug}`} radius={0.85} offsetY={34} />
     </group>
   )
 }
