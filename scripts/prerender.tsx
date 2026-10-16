@@ -191,16 +191,16 @@ function Card({ bg, art, artW, artH, artRight = 20, children }: { bg: string; ar
 const Label = ({ color = C.soft, children }: { color?: string; children: string }) => (
   <div style={{ display: 'flex', fontFamily: 'Share Tech Mono', fontSize: 24, letterSpacing: 3, color, marginBottom: 18 }}>{children}</div>
 )
-/** 제목: 영문·숫자는 Audiowide, 한글은 자동으로 Wanted Sans. 그리스 문자(α β γ …)는 Noto Sans Greek로 직접 지정 */
+/** 제목: 영문·숫자는 Audiowide, 한글은 자동으로 Wanted Sans. 그리스 문자(α β γ …)는 Noto Sans Greek로 직접 지정. 한국어는 어절 단위로 줄바꿈(keep-all) */
 const Title = ({ children, size }: { children: string; size: number }) => (
-  <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Audiowide', fontWeight: 700, fontSize: size, lineHeight: 1.18, letterSpacing: 0.5 }}>
+  <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Audiowide', fontWeight: 700, fontSize: size, lineHeight: 1.18, letterSpacing: 0.5, wordBreak: 'keep-all' }}>
     {children.split(/([Ͱ-Ͽ]+)/).map((part, i) =>
       i % 2 ? <span key={i} style={{ fontFamily: 'Noto Sans Greek', marginLeft: '0.25em' }}>{part}</span> : part,
     )}
   </div>
 )
 const Sub = ({ children }: { children: string }) => (
-  <div style={{ display: 'flex', fontSize: 28, lineHeight: 1.5, color: C.soft, marginTop: 22, fontWeight: 500 }}>{children}</div>
+  <div style={{ display: 'flex', fontSize: 28, lineHeight: 1.5, color: C.soft, marginTop: 22, fontWeight: 500, wordBreak: 'keep-all' }}>{children}</div>
 )
 const titleSize = (t: string) => (t.length > 22 ? 48 : t.length > 14 ? 58 : 72)
 
