@@ -118,26 +118,22 @@
 }
 .hint { font-size: 13px; color: var(--ink-faint); margin: 0; }
 
-/* ---------- 방향키 내비게이터 (Navigator.tsx): 키보드 방향키 배치 ↑ / ← ↓ → ---------- */
+/* ---------- 방향키 내비게이터 (Navigator.tsx): 2×2 정사각 [↑ 위로][↓ 들어가기] / [← 이전][→ 다음] ---------- */
 .navigator {
   position: fixed; left: 24px; bottom: 24px; z-index: 12;
-  display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 6px;
+  display: grid; grid-template-columns: repeat(2, 64px); grid-auto-rows: 64px; gap: 6px;
   animation: panel-in-up 0.6s 0.5s both;
 }
-.nav-key.is-up { grid-column: 2; grid-row: 1; }
-.nav-key.is-left { grid-column: 1; grid-row: 2; }
-.nav-key.is-down { grid-column: 2; grid-row: 2; }
-.nav-key.is-right { grid-column: 3; grid-row: 2; }
 .nav-key {
-  display: grid; place-items: center;
-  color: var(--ink); text-decoration: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--ink); text-decoration: none;
   background: var(--panel); border: 1px solid var(--rule); border-radius: 12px;
   transition: background 0.15s, border-color 0.15s;
 }
 .nav-key:hover { background: var(--paper-3); border-color: var(--rule-strong); }
 .nav-key:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
 span.nav-key { color: var(--ink-faint); opacity: 0.35; }
-.hud-bottom.with-nav { left: calc(24px + 144px + 16px); }
+.hud-bottom.with-nav { left: calc(24px + 134px + 16px); }
 body:has(.panel-reader.is-wide) .navigator { opacity: 0; pointer-events: none; }
 @media (max-width: 899px) {
   /* 모바일: 접힌 시트 바로 위 오른쪽, 시트를 펼치면 숨김 */

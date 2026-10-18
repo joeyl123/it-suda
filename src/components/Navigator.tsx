@@ -9,10 +9,12 @@ type Dir = 'up' | 'left' | 'down' | 'right'
 
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
 const KEYS: Record<string, Dir> = { ArrowUp: 'up', ArrowLeft: 'left', ArrowDown: 'down', ArrowRight: 'right' }
+const TEXT: Record<Dir, string> = { up: '위로', left: '이전', down: '들어가기', right: '다음' }
 const PATH: Record<Dir, string> = { up: 'M6 15l6-6 6 6', down: 'M6 9l6 6 6-6', left: 'M15 6l-6 6 6 6', right: 'M9 6l6 6-6 6' }
 
 /**
- * 방향키 내비게이터 (design.md §5): ← → 같은 단계의 이웃(시간순), ↑ 한 단계 위로, ↓ 한 단계 안으로.
+ * 방향키 내비게이터 (design.md §5): 2×2 정사각 버튼 [↑ 위로][↓ 들어가기] / [← 이전][→ 다음].
+ *: ← → 같은 단계의 이웃(시간순), ↑ 한 단계 위로, ↓ 한 단계 안으로.
  * 키보드 방향키도 같다 (입력창·패널 안에서는 무시, 코나미 커맨드 중엔 무시).
  */
 export default function Navigator(steps: Partial<Record<Dir, Step>>) {
@@ -39,7 +41,7 @@ export default function Navigator(steps: Partial<Record<Dir, Step>>) {
 
   return (
     <nav className="navigator" aria-label="우주 이동">
-      {(['up', 'left', 'down', 'right'] as const).map((dir) => {
+      {(['up', 'down', 'left', 'right'] as const).map((dir) => {
         const step = steps[dir]
         const icon = (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -49,10 +51,12 @@ export default function Navigator(steps: Partial<Record<Dir, Step>>) {
         return step ? (
           <Link key={dir} to={step.to} className={`nav-key is-${dir}`} aria-label={step.label} title={step.label}>
             {icon}
+            <span>{TEXT[dir]}</span>
           </Link>
         ) : (
           <span key={dir} className={`nav-key is-${dir}`} aria-hidden="true">
             {icon}
+            <span>{TEXT[dir]}</span>
           </span>
         )
       })}
