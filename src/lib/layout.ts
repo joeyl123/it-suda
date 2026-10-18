@@ -9,7 +9,6 @@
 import { planetProfile, seeded, systemProfile, type PlanetProfile } from './cosmos'
 import { getSession, sessions, type Session, type Topic } from './sessions'
 
-export const GALAXY_RADIUS = 18
 export const SYSTEM_SCALE = 0.3
 export const PLANET_SCALE = 1.5
 
@@ -41,10 +40,30 @@ export function armPoint(arm: Arm, t: number, radius: number, wobble = 0) {
 /** 오래된 회차일수록 은하 중심 가까이. 두 주팔을 번갈아 놓인다. */
 export const galaxyOrder: Session[] = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
 
+// ---------------------------------------------------------------- 태양계 자리 (design.md §4)
+// 회차마다 정해진 자리: i번째 회차는 주팔 (i % 2)의 (i / 2)번째 칸. 칸은 중심에서 SLOT_START부터 SLOT_STEP 간격.
+// 자리가 회차 수와 상관없으므로, 새 회차가 생겨도 기존 태양계는 움직이지 않고 새 태양계가 바깥에 붙는다.
+// 칸이 은하 끝(팔 길이의 SLOT_REACH)을 넘으면 은하 자체가 커진다 — 기본 반지름 18이면 8개까지.
+
+const BASE_RADIUS = 18
+const SLOT_START = 6.5 // 첫 칸 (팽대부·블랙홀을 피해서)
+const SLOT_STEP = 3.6 // 같은 팔 위 이웃 태양계 사이 (반지름 방향; 나선을 따라가면 실제 거리는 약 2~3배)
+const SLOT_REACH = 0.92 // 팔 길이 중 태양계를 놓는 범위
+
+const slotRadius = (i: number) => SLOT_START + Math.floor(i / 2) * SLOT_STEP
+const outermost = galaxyOrder.length ? slotRadius(galaxyOrder.length - 1) : SLOT_START
+const shortestArm = Math.min(ARMS[0].length, ARMS[1].length)
+
+/** 은하 반지름. 회차가 늘어 칸이 모자라면 커진다 */
+export const GALAXY_RADIUS = Math.max(BASE_RADIUS, (outermost - 1.2) / (shortestArm * SLOT_REACH))
+/** 기본 크기 대비 배율 — 커진 은하는 별도 그만큼 더 뿌린다 */
+export const GALAXY_GROWTH = GALAXY_RADIUS / BASE_RADIUS
+
 export function systemPosition(slug: string): [number, number, number] {
   const i = Math.max(0, galaxyOrder.findIndex((s) => s.slug === slug))
-  const n = galaxyOrder.length
-  const p = armPoint(ARMS[i % 2], 0.22 + (0.68 * (i + 1)) / (n + 1), GALAXY_RADIUS)
+  const arm = ARMS[i % 2]
+  const t = (slotRadius(i) - 1.2) / (GALAXY_RADIUS * arm.length) // armPoint의 r = 1.2 + t·R·length 를 거꾸로
+  const p = armPoint(arm, t, GALAXY_RADIUS)
   return [p.x, 0.3, p.z]
 }
 

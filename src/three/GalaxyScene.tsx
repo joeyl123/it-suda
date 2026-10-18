@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { planetColors, planetProfile, seeded, systemProfile } from '../lib/cosmos'
-import { GALAXY_RADIUS, galaxyOrder, systemPosition } from '../lib/layout'
+import { GALAXY_GROWTH, GALAXY_RADIUS, galaxyOrder, systemPosition } from '../lib/layout'
 import type { Session } from '../lib/sessions'
 import { Anchor, Emerge, Glow, OrbitRing } from './common'
 import GalaxyBody from './GalaxyBody'
@@ -18,7 +18,7 @@ export default function GalaxyScene({ layerId, matches, hovered, hide, emerge, b
   const { settings } = useQuality()
   return (
     <>
-      <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars} starsOnly={backdrop} emerge={emerge} />
+      <GalaxyBody radius={GALAXY_RADIUS} density={settings.stars * GALAXY_GROWTH} starsOnly={backdrop} emerge={emerge} />
       {/* 태양계에서 은하로 나올 땐 다른 태양계들이 화면 밖에서 모여든다 */}
       <Emerge source={emerge}>
         {!backdrop && galaxyOrder.map((s, i) => {
