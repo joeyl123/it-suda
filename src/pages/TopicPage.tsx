@@ -62,6 +62,8 @@ export default function TopicPage() {
 
   const profile = planetProfile(session, topic)
   const no = session.number !== undefined ? pad2(session.number) : '··'
+  const prevT = session.topicList[topic.index - 2]
+  const nextT = session.topicList[topic.index]
   const facts = [
     profile.sea > 0.1 ? '바다가 넓음' : profile.sea < -0.5 ? '물이 거의 없음' : null,
     profile.ring ? '고리 있음' : null,
@@ -99,19 +101,6 @@ export default function TopicPage() {
         className={`panel panel-right panel-reader${wide ? ' is-wide' : ''}${toggled && !wide ? ' no-enter' : ''}`}
         style={tone}
         onScroll={onScroll}
-        footer={
-          <Navigator
-            kind="행성"
-            items={session.topicList.map((t) => ({
-              to: `/sessions/${session.slug}/${t.index}`,
-              no: pad2(t.index),
-              title: t.title,
-              color: planetProfile(session, t).biome.glow,
-            }))}
-            current={topic.index - 1}
-            back={{ to: `/sessions/${session.slug}`, label: `No.${no} 태양계로` }}
-          />
-        }
       >
         <div className="reader-bar">
           <nav className="crumbs">
@@ -178,6 +167,11 @@ export default function TopicPage() {
         </div>
       </Sheet>
 
+      <Navigator
+        up={{ to: `/sessions/${session.slug}`, label: `태양계 No.${no}로` }}
+        left={prevT && { to: `/sessions/${session.slug}/${prevT.index}`, label: `이전 행성: ${prevT.title}` }}
+        right={nextT && { to: `/sessions/${session.slug}/${nextT.index}`, label: `다음 행성: ${nextT.title}` }}
+      />
     </>
   )
 }

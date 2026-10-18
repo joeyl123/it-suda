@@ -19,6 +19,9 @@ export default function SessionPage() {
 
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const system = systemProfile(session)
+  const i = systemNavItems.findIndex((it) => it.slug === session.slug)
+  const [prev, next] = [systemNavItems[i - 1], systemNavItems[i + 1]]
+  const first = session.topicList[0]
 
   return (
     <>
@@ -28,18 +31,7 @@ export default function SessionPage() {
         {session.topicList.length > 0 && <span className="hint">행성을 눌러 착륙</span>}
       </div>
 
-      <Sheet
-        className="panel panel-right"
-        style={{ '--corona': system.corona } as CSSProperties}
-        footer={
-          <Navigator
-            kind="태양계"
-            items={systemNavItems}
-            current={systemNavItems.findIndex((it) => it.slug === session.slug)}
-            back={{ to: galaxyHref(), label: '은하로' }}
-          />
-        }
-      >
+      <Sheet className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
         <nav className="crumbs">
           <Link to={galaxyHref()}>은하</Link>
           <span>/</span>
@@ -89,6 +81,12 @@ export default function SessionPage() {
         )}
       </Sheet>
 
+      <Navigator
+        up={{ to: galaxyHref(), label: '은하로' }}
+        left={prev && { to: prev.to, label: `이전 태양계: ${prev.title}` }}
+        right={next && { to: next.to, label: `다음 태양계: ${next.title}` }}
+        down={first && { to: `/sessions/${session.slug}/${first.index}`, label: `행성 ${pad2(first.index)}로 착륙` }}
+      />
     </>
   )
 }

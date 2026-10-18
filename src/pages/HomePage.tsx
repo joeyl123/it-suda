@@ -61,25 +61,10 @@ export default function HomePage() {
   )
 
   if (view === 'galaxy') {
-    // 내비게이터: 시간순 번호 + "태양계 탐사" (검색 중이면 걸린 태양계부터, 걸리지 않은 번호는 흐리게)
-    const filtering = Boolean(query || tag)
-    const hits = new Set(results.map((s) => s.slug))
-    const items = systemNavItems.map((it) => ({ ...it, dim: filtering && !hits.has(it.slug) }))
-    const lit = items.filter((it) => !it.dim)
-    const start = lit[0]
-    const navigator = items.length > 0 && (
-      <Navigator
-        kind="태양계"
-        items={items}
-        current={-1}
-        overviewLabel={filtering ? `태양계 ${lit.length} / ${items.length}개 빛나는 중` : `태양계 ${items.length}개 · 시간순`}
-        action={start && { to: start.to, label: filtering ? '찾은 태양계 탐사' : '태양계 탐사 시작', sub: `${start.title}부터` }}
-        keys={{ next: start?.to, prev: lit.at(-1)?.to }}
-      />
-    )
+    const first = systemNavItems[0]
     return (
       <>
-        <Sheet as="section" className="panel panel-left galaxy-hero" footer={navigator} footerFloat={false}>
+        <Sheet as="section" className="panel panel-left galaxy-hero">
           <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
           <h1>
             IT 수다 <span className="accent">은하</span>
@@ -97,7 +82,8 @@ export default function HomePage() {
             <p className="match-note">{results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}</p>
           )}
         </Sheet>
-        <div className="hud-bottom">
+        <Navigator down={first && { to: first.to, label: `${first.title}로 들어가기` }} />
+        <div className="hud-bottom with-nav">
           {viewToggle}
           <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
         </div>
