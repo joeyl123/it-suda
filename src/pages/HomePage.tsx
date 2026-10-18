@@ -2,7 +2,8 @@ import { useMemo, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
-import DepthNav from '../components/DepthNav'
+import Navigator from '../components/Navigator'
+import { systemNavItems } from '../lib/nav'
 import Sheet from '../components/Sheet'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
@@ -77,8 +78,20 @@ export default function HomePage() {
             <p className="match-note">{results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}</p>
           )}
         </Sheet>
-        <div className="hud-bottom">
-          {sessions[0] && <DepthNav down={{ to: `/sessions/${sessions[0].slug}`, label: '최근 태양계로' }} />}
+        {systemNavItems.length > 0 && (
+          <Navigator
+            kind="태양계"
+            items={systemNavItems}
+            current={-1}
+            overview={{
+              meta: `은하 · 태양계 ${systemNavItems.length}개`,
+              title: '좌우로 태양계를 둘러보세요',
+              next: { ...systemNavItems[0], hint: '첫 태양계부터' },
+              prev: { ...systemNavItems[systemNavItems.length - 1], hint: '가장 최근 태양계' },
+            }}
+          />
+        )}
+        <div className="hud-bottom with-nav">
           {viewToggle}
           <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
         </div>

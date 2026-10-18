@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
-import DepthNav from '../components/DepthNav'
+import Navigator from '../components/Navigator'
+import { systemNavItems } from '../lib/nav'
 import Sheet from '../components/Sheet'
 import Prose from '../components/Prose'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
@@ -16,7 +17,6 @@ export default function SessionPage() {
   useTitle(!session ? '궤도를 벗어났어요' : `${session.number !== undefined ? `No.${pad2(session.number)} ` : ''}${session.title}`)
   if (!session) return <NotFoundPage />
 
-  const first = session.topicList[0]
   const no = session.number !== undefined ? pad2(session.number) : '··'
   const system = systemProfile(session)
 
@@ -78,10 +78,7 @@ export default function SessionPage() {
         )}
       </Sheet>
 
-      <DepthNav
-        up={{ to: '/', label: '은하로' }}
-        down={first && { to: `/sessions/${session.slug}/${first.index}`, label: `행성 ${pad2(first.index)}로 착륙` }}
-      />
+      <Navigator kind="태양계" items={systemNavItems} current={systemNavItems.findIndex((it) => it.to === `/sessions/${session.slug}`)} up="/" />
     </>
   )
 }

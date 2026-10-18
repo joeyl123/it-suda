@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
-import DepthNav from '../components/DepthNav'
+import Navigator from '../components/Navigator'
 import Sheet from '../components/Sheet'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2 } from '../lib/sessions'
@@ -160,7 +160,16 @@ export default function TopicPage() {
         </div>
       </Sheet>
 
-      <DepthNav up={{ to: `/sessions/${session.slug}`, label: `태양계 No.${no}로` }} />
+      <Navigator
+        kind="행성"
+        items={session.topicList.map((t) => ({
+          to: `/sessions/${session.slug}/${t.index}`,
+          title: t.title,
+          color: planetProfile(session, t).biome.glow,
+        }))}
+        current={topic.index - 1}
+        up={`/sessions/${session.slug}`}
+      />
     </>
   )
 }
