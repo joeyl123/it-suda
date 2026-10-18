@@ -11,11 +11,14 @@ export default function Sheet({
   as: Tag = 'aside',
   className,
   style,
+  onScroll,
   children,
 }: {
   as?: 'aside' | 'section'
   className: string
   style?: CSSProperties
+  /** 본문 스크롤 (읽기 진행률·현재 목차 표시용) */
+  onScroll?: (el: HTMLElement) => void
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -43,7 +46,7 @@ export default function Sheet({
   const state = !mobile ? undefined : open ? 'open' : 'peek'
 
   return (
-    <Tag ref={body as never} className={className} style={style} data-sheet={state}>
+    <Tag ref={body as never} className={className} style={style} data-sheet={state} onScroll={onScroll && ((e) => onScroll(e.currentTarget))}>
       {mobile && (
         <button
           type="button"

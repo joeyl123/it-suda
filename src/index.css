@@ -1,19 +1,24 @@
 /* Design guide: see design.md — "Mirror Talk" in an isometric galaxy */
 /* 우주는 언제나 밤: 사이트 전체가 단일 space 테마 */
 :root {
-  --paper: #0f0c18;
-  --paper-2: #1a1526;
-  --ink: #f3ecdd;
-  --ink-soft: #a99fbc;
-  --rule: #352c4a;
-  --violet: #b898ea;
-  --apricot: #f0946e;
-  --butter: rgba(242, 220, 126, 0.22);
-  --panel: rgba(22, 18, 34, 0.78);
+  /* 한국 앱(토스·디자이너스 레퍼런스) 톤: 평평한 어두운 면, 얇은 테두리, 회색 보조 글자 */
+  --paper: #101114;
+  --paper-2: #1b1c21;
+  --paper-3: #25262c;
+  --ink: #f2f3f5;
+  --ink-soft: #9ba1ab;
+  --ink-faint: #6b7079;
+  --rule: rgba(255, 255, 255, 0.08);
+  --rule-strong: rgba(255, 255, 255, 0.14);
+  --violet: #a08cf5;
+  --apricot: #ff8f6b;
+  --butter: rgba(160, 140, 245, 0.28);
+  --panel: rgba(22, 23, 27, 0.94);
 
-  --font-display: 'Audiowide', 'Wanted Sans Variable', 'Wanted Sans', system-ui, sans-serif; /* 영문·숫자 Audiowide, 한글 Wanted Sans */
-  --font-body: 'Wanted Sans Variable', 'Wanted Sans', system-ui, sans-serif;
-  --font-mono: 'Share Tech Mono', 'Wanted Sans Variable', ui-monospace, monospace;
+  --font-display: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', sans-serif;
+  --font-body: var(--font-display);
+  --font-mono: var(--font-display); /* 숫자·메타 정보도 Pretendard (tabular-nums) */
+  --font-code: ui-monospace, SFMono-Regular, Menlo, Consolas, 'D2Coding', monospace;
   color-scheme: dark;
 }
 
@@ -22,13 +27,12 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background-color: var(--paper);
-  background-image:
-    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(106, 63, 160, 0.22), transparent 70%),
-    radial-gradient(ellipse 60% 50% at 10% 90%, rgba(217, 116, 79, 0.14), transparent 70%);
-  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-body);
-  line-height: 1.7;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 0;
   word-break: keep-all;
 }
 a { color: inherit; }
@@ -36,14 +40,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 6px; }
 ::selection { background: var(--butter); color: var(--ink); }
 
-.mono { font-family: var(--font-mono); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .label {
   font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+    color: var(--ink-soft);
 }
 
 /* ---------- Shell ---------- */
@@ -58,7 +62,7 @@ body { overflow: hidden; }
 .header {
   position: fixed; top: 0; left: 0; right: 0; z-index: 40;
   pointer-events: auto;
-  background: linear-gradient(to bottom, rgba(15, 12, 24, 0.85), rgba(15, 12, 24, 0));
+  background: linear-gradient(to bottom, rgba(16, 17, 20, 0.9), rgba(16, 17, 20, 0));
 }
 .header-inner {
   display: grid;
@@ -73,18 +77,18 @@ body { overflow: hidden; }
 .brand {
   display: flex; align-items: center; gap: 10px;
   text-decoration: none;
-  font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: 0.01em;
+  font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.03em;
 }
 .brand img { display: block; }
 .nav-link {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 500; letter-spacing: 0.04em;
+  font-size: 14px; font-weight: 600;
   text-decoration: none; color: var(--ink-soft);
-  padding: 6px 12px; border-radius: 999px; border: 1px solid transparent;
-  background: rgba(15, 12, 24, 0.4);
+  padding: 7px 14px; border-radius: 10px; border: 1px solid transparent;
+  background: rgba(27, 28, 33, 0.7);
   transition: color 0.15s, border-color 0.15s;
 }
 .nav-link:hover { color: var(--ink); }
-.nav-link.active { color: var(--ink); border-color: var(--ink); }
+.nav-link.active { color: var(--ink); background: var(--paper-3); }
 @media (max-width: 479px) {
   .brand span { display: none; }
 }
@@ -97,7 +101,7 @@ body { overflow: hidden; }
   font-weight: 700;
   font-size: clamp(40px, 9vw, 80px);
   line-height: 1.12;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
   margin: 0 0 24px;
 }
 .hero h1 .q { color: var(--violet); font-size: 0.7em; vertical-align: 0.2em; padding: 0 0.12em; }
@@ -110,13 +114,13 @@ body { overflow: hidden; }
   grid-template-columns: repeat(3, auto);
   margin: 0;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 14px;
   background: var(--paper-2);
 }
 .stats > div { padding: 12px 24px; text-align: center; }
 .stats > div + div { border-left: 1px solid var(--rule); }
-.stats dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink-soft); }
-.stats dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.3; }
+.stats dt { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--ink-soft); }
+.stats dd { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1.3; font-variant-numeric: tabular-nums; }
 @media (max-width: 479px) { .stats > div { padding: 10px 16px; } }
 
 /* ---------- Search + chips ---------- */
@@ -126,7 +130,7 @@ body { overflow: hidden; }
   padding: 16px 24px;
   font: inherit; font-size: 16px;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--paper-2);
   color: var(--ink);
   outline: none;
@@ -134,22 +138,22 @@ body { overflow: hidden; }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .search input::placeholder { color: var(--ink-soft); }
-.search input:focus { border-color: var(--violet); box-shadow: 0 0 0 4px color-mix(in srgb, var(--violet) 15%, transparent); }
+.search input:focus { border-color: var(--rule-strong); background: var(--paper-3); }
 
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-family: var(--font-mono); font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500;
   text-decoration: none;
   color: var(--ink-soft);
-  border: 1px solid var(--rule);
-  background: var(--paper-2);
+  border: 1px solid transparent;
+  background: var(--paper-3);
   transition: color 0.15s, border-color 0.15s;
 }
-.chip:hover { color: var(--ink); border-color: var(--ink-soft); }
-.chip-active, .chip-active:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.chip:hover { color: var(--ink); background: #2e3036; }
+.chip-active, .chip-active:hover { background: var(--ink); color: var(--paper); }
 .chip-count { font-size: 11px; opacity: 0.6; }
 
 /* ---------- Timeline (the axis) ---------- */
@@ -201,32 +205,29 @@ body { overflow: hidden; }
   display: flex; flex-direction: column;
   background: var(--paper-2);
   border: 1px solid var(--rule);
-  border-radius: 20px;
-  transition: border-color 0.2s, transform 0.2s;
+  border-radius: 16px;
+  transition: border-color 0.2s, background 0.2s;
 }
-.entry-left .card { border-bottom-right-radius: 4px; }
-.entry-right .card { border-bottom-left-radius: 4px; }
-.entry-left .card:hover { border-color: var(--violet); transform: translateX(4px); }
-.entry-right .card:hover { border-color: var(--apricot); transform: translateX(-4px); }
+.entry-left .card { }
+.entry-right .card { }
+.entry .card:hover { border-color: var(--rule-strong); background: var(--paper-3); }
 @media (max-width: 719px) {
-  .entry-left .card, .entry-right .card { border-radius: 20px; border-top-left-radius: 4px; }
-  .entry-left .card:hover, .entry-right .card:hover { transform: translateX(-4px); }
 }
 
 .card-link { flex: 1; padding: 24px 24px 8px; text-decoration: none; }
 .card-meta {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0;
   color: var(--ink-soft);
 }
 .card-meta .dot { opacity: 0.5; }
 .card-title {
   font-family: var(--font-display); font-weight: 700;
-  font-size: 22px; line-height: 1.4; letter-spacing: 0.01em;
+  font-size: 20px; line-height: 1.4; letter-spacing: -0.02em;
   margin: 12px 0 8px;
 }
 .card-summary { color: var(--ink-soft); margin: 0 0 16px; font-size: 15px; line-height: 1.65; }
-.card-topics { list-style: none; margin: 0; padding: 16px 0 0; border-top: 1px dashed var(--rule); font-size: 14px; counter-reset: t; }
+.card-topics { list-style: none; margin: 0; padding: 16px 0 0; border-top: 1px solid var(--rule); font-size: 14px; counter-reset: t; }
 .card-topics li { display: flex; gap: 12px; margin: 4px 0; }
 .card-topics li::before {
   counter-increment: t;
@@ -268,55 +269,69 @@ body { overflow: hidden; }
 .session-header .card-meta { justify-content: center; }
 .session-header h1 {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(30px, 6vw, 48px); line-height: 1.25; letter-spacing: 0.01em;
+  font-size: clamp(30px, 6vw, 48px); line-height: 1.25; letter-spacing: -0.02em;
   margin: 16px 0;
 }
 .session-summary { color: var(--ink-soft); font-size: 17px; margin: 0 auto; max-width: 32em; }
 .session-header .chips { margin-top: 24px; }
 
-.prose { font-size: 17px; line-height: 1.8; overflow-wrap: anywhere; counter-reset: topic; }
+/* 읽기 본문: 16px · 행간 1.75 · 소제목은 구분선으로 나눈 섹션, 표·인용·코드는 카드 */
+.prose { font-size: 16px; line-height: 1.75; color: #e4e6ea; overflow-wrap: anywhere; counter-reset: topic; }
+.prose > :first-child { margin-top: 0; }
+.prose p { margin: 0 0 14px; }
 .prose h2 {
-  display: flex; align-items: baseline; gap: 16px;
   font-family: var(--font-display); font-weight: 700;
-  font-size: 26px; line-height: 1.35; letter-spacing: 0.01em;
-  margin: 56px 0 16px;
+  font-size: 22px; line-height: 1.4; letter-spacing: -0.02em; color: var(--ink);
+  margin: 48px 0 14px;
 }
-.prose h2::before {
-  counter-increment: topic;
-  content: counter(topic, decimal-leading-zero);
-  flex: none;
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
-  color: var(--violet);
-  border: 1px solid currentColor; border-radius: 999px;
-  padding: 2px 10px;
-  transform: translateY(-4px);
+.prose h3 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 20px; line-height: 1.45; letter-spacing: -0.02em; color: var(--ink);
+  margin: 44px 0 14px; padding-top: 28px;
+  border-top: 1px solid var(--rule);
+  scroll-margin-top: 72px;
 }
-.prose h2:nth-of-type(even)::before { color: var(--apricot); }
-.prose h3 { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 32px 0 8px; }
-.prose a { color: var(--violet); text-underline-offset: 3px; }
-.prose strong { background: linear-gradient(transparent 55%, var(--butter) 55%); padding: 0 2px; }
-.prose ul, .prose ol { padding-left: 24px; }
-.prose li { margin: 4px 0; }
-.prose li::marker { color: var(--ink-soft); }
+.prose h4 { font-size: 17px; font-weight: 700; line-height: 1.5; color: var(--ink); margin: 28px 0 10px; scroll-margin-top: 72px; }
+.prose h5 { font-size: 15px; font-weight: 700; color: var(--ink-soft); margin: 20px 0 8px; }
+.prose a { color: var(--violet); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--violet) 40%, transparent); text-underline-offset: 3px; }
+.prose a:hover { text-decoration-color: var(--violet); }
+.prose strong { font-weight: 700; color: var(--ink); }
+.prose ul, .prose ol { padding-left: 22px; margin: 0 0 14px; }
+.prose li { margin: 6px 0; }
+.prose li > ul, .prose li > ol { margin: 6px 0 0; }
+.prose li::marker { color: var(--ink-faint); }
 .prose blockquote {
-  display: inline-block;
-  margin: 0 0 8px;
-  padding: 4px 16px;
-  font-family: var(--font-mono); font-size: 13px;
-  color: var(--apricot);
-  background: color-mix(in srgb, var(--apricot) 10%, var(--paper-2));
-  border: 1px solid color-mix(in srgb, var(--apricot) 35%, transparent);
-  border-radius: 16px 16px 16px 4px;
+  margin: 18px 0;
+  padding: 14px 18px;
+  font-size: 15px; line-height: 1.7; color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--violet);
+  border-radius: 12px;
 }
 .prose blockquote p { margin: 0; }
-.prose code { font-family: var(--font-mono); background: var(--paper-2); border: 1px solid var(--rule); padding: 1px 6px; border-radius: 6px; font-size: 0.85em; }
-.prose pre { background: var(--paper-2); border: 1px solid var(--rule); padding: 16px 24px; border-radius: 16px; overflow-x: auto; }
-.prose pre code { padding: 0; border: 0; background: none; }
-.prose table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; font-size: 15px; }
-.prose th { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-align: left; color: var(--ink-soft); }
-.prose th, .prose td { border-bottom: 1px solid var(--rule); padding: 8px 16px 8px 0; }
-.prose img { max-width: 100%; border-radius: 16px; }
-.prose hr { border: 0; border-top: 1px dashed var(--rule); margin: 40px 0; }
+.prose blockquote p + p { margin-top: 8px; }
+.prose code { font-family: var(--font-code); font-size: 0.88em; background: var(--paper-3); padding: 2px 6px; border-radius: 6px; }
+.prose pre {
+  margin: 18px 0; padding: 16px 18px;
+  font-size: 13px; line-height: 1.65;
+  background: #0b0c0e; border: 1px solid var(--rule); border-radius: 12px;
+  overflow-x: auto;
+}
+.prose pre code { padding: 0; background: none; font-size: inherit; }
+.table-wrap { margin: 18px 0; overflow-x: auto; border: 1px solid var(--rule); border-radius: 12px; }
+.prose table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.6; }
+.prose th {
+  padding: 10px 14px; text-align: left; white-space: nowrap;
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  background: var(--paper-2);
+}
+.prose td { padding: 10px 14px; border-top: 1px solid var(--rule); vertical-align: top; }
+.prose td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink); }
+.prose img { max-width: 100%; border-radius: 12px; }
+.prose hr { border: 0; border-top: 1px solid var(--rule); margin: 36px 0; }
+/* 기록마다 섹션 앞에 --- 를 두는 경우가 많다: 구분선이 겹치지 않게 소제목의 선을 뺀다 */
+.prose hr + h3, .prose hr + h2 { margin-top: 0; padding-top: 0; border-top: 0; }
 
 .pager {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -325,13 +340,12 @@ body { overflow: hidden; }
 .pager a {
   display: flex; flex-direction: column; gap: 4px;
   padding: 16px 24px; text-decoration: none;
-  border: 1px solid var(--rule); border-radius: 20px; background: var(--paper-2);
-  transition: border-color 0.2s;
+  border: 1px solid var(--rule); border-radius: 14px; background: var(--paper-2);
+  transition: border-color 0.2s, background 0.2s;
 }
-.pager a.prev { border-bottom-left-radius: 4px; }
-.pager a.next { grid-column: 2; text-align: right; border-bottom-right-radius: 4px; }
-.pager a.prev:hover { border-color: var(--violet); }
-.pager a.next:hover { border-color: var(--apricot); }
+.pager a.prev { }
+.pager a.next { grid-column: 2; text-align: right; }
+.pager a:hover { border-color: var(--rule-strong); background: var(--paper-3); }
 .pager .title { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.4; }
 @media (max-width: 479px) {
   .pager { grid-template-columns: 1fr; }
@@ -343,15 +357,15 @@ body { overflow: hidden; }
 .about > h1 {
   text-align: center;
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(32px, 6vw, 48px); letter-spacing: 0.01em; line-height: 1.25;
+  font-size: clamp(32px, 6vw, 48px); letter-spacing: -0.02em; line-height: 1.25;
   margin: 0 0 40px;
 }
 .about .lead { font-size: 19px; text-align: center; margin: 0 auto 16px; max-width: 30em; }
 .about-pair { display: grid; gap: 16px; margin: 48px 0; }
 @media (min-width: 720px) { .about-pair { grid-template-columns: 1fr 1fr; } }
-.about-pair > div { background: var(--paper-2); border: 1px solid var(--rule); border-radius: 20px; padding: 24px; }
-.about-pair > div:first-child { border-bottom-right-radius: 4px; }
-.about-pair > div:last-child { border-bottom-left-radius: 4px; }
+.about-pair > div { background: var(--paper-2); border: 1px solid var(--rule); border-radius: 16px; padding: 24px; }
+.about-pair > div:first-child { }
+.about-pair > div:last-child { }
 .about-pair h2 { margin-top: 8px !important; font-size: 22px !important; }
 .about-pair h2::before { display: none; }
 .about-pair ul { margin: 0; padding-left: 20px; }

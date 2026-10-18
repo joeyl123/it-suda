@@ -44,9 +44,10 @@ export interface SceneProps {
 }
 
 /** 화면 배치: galaxy = 왼쪽 소개 카드, panel = 오른쪽(모바일은 아래) 패널, ambient = 가운데 카드(소개·목록) */
-type Mode = 'galaxy' | 'panel' | 'ambient'
+type Mode = 'galaxy' | 'panel' | 'reader' | 'ambient'
 
 function modeOf(pathname: string, search: string, view: View): Mode {
+  if (view.kind === 'planet') return 'reader' // 행성: 넓은 읽기 패널
   if (view.kind !== 'galaxy') return 'panel'
   return pathname === '/' && !new URLSearchParams(search).has('view') ? 'galaxy' : 'ambient'
 }
@@ -54,7 +55,12 @@ function modeOf(pathname: string, search: string, view: View): Mode {
 /** 패널을 피해 장면 중심을 옮길 거리 (px). x>0 오른쪽, y>0 위쪽 */
 function shiftOf(mode: Mode, w: number, h: number, sheet: SheetState = 'peek') {
   if (mode === 'ambient') return { x: 0, y: 0 }
-  if (w >= 900) return { x: mode === 'galaxy' ? 220 : -250, y: 0 }
+  if (w >= 900) {
+    if (mode === 'galaxy') return { x: 220, y: 0 }
+    // 오른쪽 패널(오른쪽 여백 24 포함)을 뺀 나머지 화면의 가운데로. 행성 읽기 패널은 galaxy.css .panel-reader와 같은 폭
+    const panel = mode === 'reader' ? Math.min(720, Math.max(520, w * 0.44)) : 460
+    return { x: -(panel + 48) / 2, y: 0 }
+  }
   // 모바일: 아래 시트가 가리는 만큼 위로 (접힌 시트 ≈ 30%, 펼친 시트 ≈ 72%)
   return { x: 0, y: h * (sheet === 'open' ? 0.36 : 0.15) }
 }
