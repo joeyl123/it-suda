@@ -20,7 +20,7 @@ export interface QualitySettings {
 }
 
 export const QUALITY: Record<Quality, QualitySettings> = {
-  high: { dpr: 2, stars: 1, starfield: 1600, planet: { detail: 24, props: 320, clouds: 46 }, system: { detail: 8, props: 55, clouds: 12 }, fps: 0 },
+  high: { dpr: 1.75, stars: 1, starfield: 1600, planet: { detail: 24, props: 320, clouds: 46 }, system: { detail: 8, props: 55, clouds: 12 }, fps: 0 },
   medium: { dpr: 1.5, stars: 0.6, starfield: 1000, planet: { detail: 16, props: 180, clouds: 28 }, system: { detail: 6, props: 30, clouds: 8 }, fps: 0 },
   low: { dpr: 1, stars: 0.35, starfield: 600, planet: { detail: 10, props: 80, clouds: 14 }, system: { detail: 4, props: 15, clouds: 4 }, fps: 30 },
 }

@@ -20,10 +20,11 @@ import { childAnchor, extentOf, frameOf, galaxyOrder, systemLayout, viewFromPath
 import { formatDate, pad2, searchSessions } from '../lib/sessions'
 import { prefersReducedMotion } from '../lib/zoom'
 import { stepQuality, useQuality } from '../lib/quality'
-import { useSheet, type SheetState } from '../lib/ui'
+import { isCovered, useSheet, type SheetState } from '../lib/ui'
 import { bindLabel, POLAR_FULL, POLAR_OPEN, registry, Starfield, syncAnchors, useHoverCursor, type EmergeSource, type EmergeState } from './common'
 import { ShootingStars, Warp } from './effects'
 import { motion } from './motion'
+import { SunLight } from './sunlight'
 import GalaxyScene from './GalaxyScene'
 import PlanetScene from './PlanetScene'
 import SystemScene from './SystemScene'
@@ -87,6 +88,8 @@ export default function Universe({ onReady }: { onReady?: () => void }) {
         <ambientLight intensity={0.9} />
         <hemisphereLight args={['#e2d3f7', '#2a2140', 1.1]} />
         <directionalLight position={[-8, 12, 6]} intensity={2.2} color="#fff4e0" />
+        {/* 점광원은 항상 하나 — 개수가 바뀌면 모든 재질이 셰이더를 다시 컴파일한다 */}
+        <SunLight />
         {/* 버벅이면 품질을 한 단계 내리고, 여유가 생기면 올린다 (자동 모드일 때만) */}
         <PerformanceMonitor flipflops={3} onDecline={() => stepQuality(-1)} onIncline={() => stepQuality(1)} />
         {settings.fps > 0 && <FrameCap fps={settings.fps} />}
@@ -538,6 +541,7 @@ function FrameCap({ fps }: { fps: number }) {
  */
 function RenderAndSync() {
   useFrame(({ gl, scene, camera, size }) => {
+    if (isCovered()) return // 넓게 읽는 중: 3D가 가려져 있으니 그리지 않는다
     gl.render(scene, camera)
     syncAnchors(camera, size)
   }, 1)

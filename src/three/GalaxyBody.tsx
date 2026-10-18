@@ -4,7 +4,7 @@
 //  - 성운 구름, 먼지띠, 구상성단, 젊은 청색 별, 헤일로, 위성 은하, 먼 배경 은하
 //  - 모든 별은 크기가 제각각이고 반짝인다 (TwinklePoints 셰이더)
 import { useEffect, useMemo, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
 import { getGlowTexture } from './glow'
@@ -48,45 +48,55 @@ interface Star {
   s: number
 }
 
-export function TwinklePoints({ stars, opacity = 1, blending = THREE.AdditiveBlending }: { stars: Star[]; opacity?: number; blending?: THREE.Blending }) {
-  const { gl } = useThree()
-  const { geometry, material } = useMemo(() => {
-    const n = stars.length
-    const pos = new Float32Array(n * 3)
-    const col = new Float32Array(n * 3)
-    const size = new Float32Array(n)
-    const phase = new Float32Array(n)
-    stars.forEach((st, i) => {
-      pos.set(st.p, i * 3)
-      col.set([st.c.r, st.c.g, st.c.b], i * 3)
-      size[i] = st.s
-      phase[i] = (Math.sin(i * 91.7) + 1) / 2
-    })
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3))
-    g.setAttribute('size', new THREE.BufferAttribute(size, 1))
-    g.setAttribute('phase', new THREE.BufferAttribute(phase, 1))
-    const m = new THREE.ShaderMaterial({
-      vertexShader: vert,
-      fragmentShader: frag,
-      uniforms: { uTime: { value: 0 }, uPixelRatio: { value: gl.getPixelRatio() }, uOpacity: { value: opacity } },
-      transparent: true,
-      depthWrite: false,
-      blending,
-    })
-    return { geometry: g, material: m }
-  }, [stars, opacity, blending, gl])
+// 별 데이터(은하 캐시와 같은 배열) 하나당 지오메트리 하나: 은하 화면과 배경 은하, 그리고 은하로 다시 나올 때마다
+// 수만 개의 점을 다시 만들어 GPU에 올리지 않도록 공유한다 (데이터가 캐시에 영원히 있으므로 지오메트리도 버리지 않는다)
+const starGeometry = new WeakMap<Star[], THREE.BufferGeometry>()
+function geometryOf(stars: Star[]) {
+  let g = starGeometry.get(stars)
+  if (g) return g
+  const n = stars.length
+  const pos = new Float32Array(n * 3)
+  const col = new Float32Array(n * 3)
+  const size = new Float32Array(n)
+  const phase = new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    const st = stars[i]
+    pos[i * 3] = st.p[0]
+    pos[i * 3 + 1] = st.p[1]
+    pos[i * 3 + 2] = st.p[2]
+    col[i * 3] = st.c.r
+    col[i * 3 + 1] = st.c.g
+    col[i * 3 + 2] = st.c.b
+    size[i] = st.s
+    phase[i] = (Math.sin(i * 91.7) + 1) / 2
+  }
+  g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3))
+  g.setAttribute('size', new THREE.BufferAttribute(size, 1))
+  g.setAttribute('phase', new THREE.BufferAttribute(phase, 1))
+  starGeometry.set(stars, g)
+  return g
+}
 
-  useEffect(
-    () => () => {
-      geometry.dispose()
-      material.dispose()
-    },
-    [geometry, material],
+export function TwinklePoints({ stars, opacity = 1, blending = THREE.AdditiveBlending }: { stars: Star[]; opacity?: number; blending?: THREE.Blending }) {
+  const geometry = geometryOf(stars)
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: vert,
+        fragmentShader: frag,
+        uniforms: { uTime: { value: 0 }, uPixelRatio: { value: 1 }, uOpacity: { value: opacity } },
+        transparent: true,
+        depthWrite: false,
+        blending,
+      }),
+    [opacity, blending],
   )
-  useFrame(({ clock }) => {
+  useEffect(() => () => material.dispose(), [material])
+  useFrame(({ clock, gl }) => {
     material.uniforms.uTime.value = clock.elapsedTime
+    material.uniforms.uPixelRatio.value = gl.getPixelRatio() // 화질이 바뀌어도 별 크기가 맞게
   })
   return <points geometry={geometry} material={material} frustumCulled={false} />
 }

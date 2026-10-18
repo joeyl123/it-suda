@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import CosmicToast from './CosmicToast'
 import Loader from './Loader'
 import QualityMenu from './QualityMenu'
+import { prefetchProse } from './Prose'
 import { hasWebGL } from '../lib/webgl'
 
 // 화면 전체에 늘 떠 있는 하나의 3D 우주. 페이지는 그 위에 뜬 패널일 뿐이다.
@@ -14,6 +15,7 @@ export default function Layout() {
   const atHome = location.pathname === '/'
   const atAbout = location.pathname === '/about'
   const [ready, setReady] = useState(!webgl)
+  useEffect(prefetchProse, [])
 
   return (
     <>

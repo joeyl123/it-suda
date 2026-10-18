@@ -6,6 +6,7 @@ import Sheet from '../components/Sheet'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2 } from '../lib/sessions'
 import { readMinutes, tocOf } from '../lib/toc'
+import { setCovered } from '../lib/ui'
 import { useTitle } from '../lib/useTitle'
 import NotFoundPage from './NotFoundPage'
 
@@ -30,17 +31,25 @@ export default function TopicPage() {
 
   const toc = useMemo(() => (topic ? tocOf(topic.body) : []), [topic])
   const [wide, setWide] = useState(readWide)
+  // 한 번이라도 넓게/좁게 바꿨으면 패널 등장 애니메이션을 다시 틀지 않는다 (바꿀 때마다 사라졌다 나타나지 않게)
+  const [toggled, setToggled] = useState(false)
   const [current, setCurrent] = useState<string | null>(null)
   const progress = useRef<HTMLSpanElement>(null)
 
   const toggleWide = (next: boolean) => {
     setWide(next)
+    setToggled(true)
     try {
       localStorage.setItem(WIDE_KEY, next ? '1' : '0')
     } catch {
       /* 저장 못 해도 이번엔 적용 */
     }
   }
+  // 데스크톱에서 넓게 읽는 동안엔 3D가 완전히 가려지므로 그리기를 멈춘다
+  useEffect(() => {
+    setCovered(wide && window.matchMedia('(min-width: 900px)').matches)
+    return () => setCovered(false)
+  }, [wide])
   useEffect(() => {
     if (!wide) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && toggleWide(false)
@@ -85,7 +94,7 @@ export default function TopicPage() {
 
       {wide && <div className="reader-dim" onClick={() => toggleWide(false)} aria-hidden="true" />}
 
-      <Sheet className={`panel panel-right panel-reader${wide ? ' is-wide' : ''}`} style={tone} onScroll={onScroll}>
+      <Sheet className={`panel panel-right panel-reader${wide ? ' is-wide' : ''}${toggled && !wide ? ' no-enter' : ''}`} style={tone} onScroll={onScroll}>
         <div className="reader-bar">
           <nav className="crumbs">
             <Link to="/">은하</Link>

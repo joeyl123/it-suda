@@ -1,32 +1,20 @@
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkCjkFriendly from 'remark-cjk-friendly'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 
-// remark-cjk-friendly: "**카파시(Karpathy)**가"처럼 굵은 글씨 바로 뒤에 한국어 조사가 붙어도 굵게 보이도록
-// (CommonMark 규칙만으로는 닫는 ** 가 인식되지 않아 별표가 그대로 보인다)
+// 마크다운 렌더러(react-markdown + remark 플러그인)는 무거워서 따로 받는다 — 은하 첫 화면에는 필요 없다.
+// 첫 화면이 뜬 뒤 쉬는 틈에 미리 받아 두므로(prefetchProse) 패널을 열 때는 보통 이미 와 있다.
+const load = () => import('./ProseMarkdown')
+const ProseMarkdown = lazy(load)
+
+export function prefetchProse() {
+  const go = () => void load()
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 3000 })
+  else setTimeout(go, 1500)
+}
+
 export default function Prose({ children }: { children: string }) {
-  // ### 소제목에 순서대로 id(sec-1, sec-2…)를 붙인다 — 행성 읽기 화면의 목차가 같은 순서로 가리킨다 (lib/toc.ts)
-  let section = 0
   return (
-    <div className="prose">
-      <Markdown
-        remarkPlugins={[remarkGfm, remarkCjkFriendly]}
-        components={{
-          // 사이트 안의 다른 행성으로 가는 링크는 새 탭 대신 그 자리에서 날아간다
-          a: ({ node: _node, href, ...props }) =>
-            href?.startsWith('/') ? <Link to={href} {...props} /> : <a href={href} {...props} target="_blank" rel="noreferrer" />,
-          h3: ({ node: _node, ...props }) => <h3 id={`sec-${++section}`} {...props} />,
-          // 넓은 표는 카드 안에서 옆으로 스크롤
-          table: ({ node: _node, ...props }) => (
-            <div className="table-wrap">
-              <table {...props} />
-            </div>
-          ),
-        }}
-      >
-        {children}
-      </Markdown>
-    </div>
+    <Suspense fallback={<div className="prose" aria-busy="true" />}>
+      <ProseMarkdown>{children}</ProseMarkdown>
+    </Suspense>
   )
 }

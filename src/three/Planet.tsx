@@ -1,22 +1,34 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, type ThreeElements } from '@react-three/fiber'
 import * as THREE from 'three'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { motion } from './motion'
 import { seeded, type PlanetProfile, type PropKind, type PropSpec } from '../lib/cosmos'
 
 // ---------------------------------------------------------------- terrain noise
 
+const WAVES = 8
+
 function makeNoise(seed: number, freq: number) {
   const rand = seeded(seed + '/terrain')
-  const waves = Array.from({ length: 8 }, (_, i) => ({
-    dir: new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize(),
-    f: freq * (1 + i * 0.95) + rand(),
-    ph: rand() * Math.PI * 2,
-    a: 1 / Math.pow(i + 1, 1.15),
-  }))
-  const norm = waves.reduce((s, w) => s + w.a, 0)
-  return (v: THREE.Vector3) =>
-    THREE.MathUtils.clamp((waves.reduce((s, w) => s + Math.sin(v.dot(w.dir) * w.f + w.ph) * w.a, 0) / norm) * 2.2, -1, 1)
+  // 파동 8개를 평평한 배열로 (x, y, z, 주파수, 위상, 세기) — 행성 하나에 수만 번 불리므로 반복문으로 계산한다
+  const w = new Float64Array(WAVES * 6)
+  let norm = 0
+  for (let i = 0; i < WAVES; i++) {
+    const dir = new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize()
+    const f = freq * (1 + i * 0.95) + rand()
+    const ph = rand() * Math.PI * 2
+    const a = 1 / Math.pow(i + 1, 1.15)
+    w.set([dir.x, dir.y, dir.z, f, ph, a], i * 6)
+    norm += a
+  }
+  const k = 2.2 / norm
+  return (v: THREE.Vector3) => {
+    let sum = 0
+    for (let i = 0; i < WAVES * 6; i += 6) sum += Math.sin((v.x * w[i] + v.y * w[i + 1] + v.z * w[i + 2]) * w[i + 3] + w[i + 4]) * w[i + 5]
+    const h = sum * k
+    return h < -1 ? -1 : h > 1 ? 1 : h
+  }
 }
 
 // ---------------------------------------------------------------- landscape props
@@ -160,8 +172,13 @@ function buildPlanet(profile: PlanetProfile, detail: number, propBudget: number,
   const deep = seabed.clone().multiplyScalar(0.55)
   const shore = low.clone().lerp(new THREE.Color('#ffffff'), 0.15)
 
-  // 지형
-  const geo = new THREE.IcosahedronGeometry(1, detail)
+  // 지형: 같은 자리의 꼭짓점을 하나로 합친 뒤 계산한다 (노이즈 계산·GPU 메모리 약 1/6).
+  // flatShading은 면 법선을 화면에서 직접 구하므로 합쳐도 모습은 같다.
+  const sphere = new THREE.IcosahedronGeometry(1, detail)
+  sphere.deleteAttribute('normal')
+  sphere.deleteAttribute('uv')
+  const geo = mergeVertices(sphere)
+  sphere.dispose()
   const pos = geo.attributes.position
   const colors = new Float32Array(pos.count * 3)
   const v = new THREE.Vector3()
@@ -181,7 +198,9 @@ function buildPlanet(profile: PlanetProfile, detail: number, propBudget: number,
     if (biome.polarCap && Math.abs(v.y) > 1 - biome.polarCap + capNoise(v) * 0.06) c.copy(SNOW)
     const r = 1 + h * amp
     pos.setXYZ(i, v.x * r, v.y * r, v.z * r)
-    colors.set([c.r, c.g, c.b], i * 3)
+    colors[i * 3] = c.r
+    colors[i * 3 + 1] = c.g
+    colors[i * 3 + 2] = c.b
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geo.computeVertexNormals()
@@ -247,6 +266,93 @@ function buildPlanet(profile: PlanetProfile, detail: number, propBudget: number,
   return { geo, water, props, clouds, dispose }
 }
 
+// ---------------------------------------------------------------- cache
+// 지은 행성을 잠시 보관한다: 태양계에서 행성으로 들어갔다 나오면 그 태양계의 행성들을 다시 짓지 않는다.
+// 쓰는 곳이 없어진 지 1분이 지나면 버린다. (같은 열쇠의 행성이 두 곳에 동시에 걸릴 일은 없다 — 화질이 다르면 열쇠도 다르다)
+
+type Built = ReturnType<typeof buildPlanet>
+const planetCache = new Map<string, { built: Built; users: number; timer?: ReturnType<typeof setTimeout> }>()
+const CACHE_TTL = 60_000
+
+const keyOf = (profile: PlanetProfile, detail: number, propBudget: number, cloudBudget: number) =>
+  `${profile.seed}|${profile.biome.name}|${detail}|${propBudget}|${cloudBudget}`
+
+function dropLater(key: string) {
+  const entry = planetCache.get(key)
+  if (!entry) return
+  clearTimeout(entry.timer)
+  entry.timer = setTimeout(() => {
+    if (entry.users > 0) return
+    entry.built.dispose()
+    planetCache.delete(key)
+  }, CACHE_TTL)
+}
+
+function cached(profile: PlanetProfile, detail: number, propBudget: number, cloudBudget: number) {
+  const key = keyOf(profile, detail, propBudget, cloudBudget)
+  const hit = planetCache.get(key)
+  if (hit) return hit.built
+  const b = buildPlanet(profile, detail, propBudget, cloudBudget)
+  planetCache.set(key, { built: b, users: 0 })
+  return b
+}
+
+/**
+ * 곧 들어갈지도 모를 행성을 미리 지어 둔다 (태양계 화면에서 쉬는 틈에, PlanetPrefetch).
+ * 아무도 쓰지 않으면 1분 뒤 버린다. 이미 있으면 아무것도 안 한다.
+ */
+export function prewarmPlanet(profile: PlanetProfile, detail: number, propBudget: number, cloudBudget: number) {
+  const key = keyOf(profile, detail, propBudget, cloudBudget)
+  if (planetCache.has(key)) return planetCache.get(key)!.built
+  const b = cached(profile, detail, propBudget, cloudBudget)
+  dropLater(key)
+  return b
+}
+
+/**
+ * 행성 장면이 쓰는 재질들을 미리 컴파일한다. 처음 행성에 들어갈 때 셰이더 컴파일로 화면이 멈추지 않게.
+ * 셰이더는 재질 종류·설정마다 한 번만 컴파일되면 되므로 행성 하나로 충분하다.
+ * @param target 실제 장면 — 빛 구성이 같아야 같은 셰이더가 만들어진다
+ */
+// 미리 컴파일용 재질은 버리지 않는다: three.js는 아무 재질도 쓰지 않는 셰이더를 지워 버리므로,
+// 이 재질들이 살아 있어야 컴파일해 둔 셰이더가 실제 행성 장면까지 남는다 (작은 재질 네 개뿐)
+let warmMats: THREE.Material[] | null = null
+const warmTiny = () => new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3))
+
+export function compilePlanetMaterials(gl: THREE.WebGLRenderer, camera: THREE.Camera, target: THREE.Scene, built: Built) {
+  const temp = new THREE.Scene()
+  warmMats ??= [
+    new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }), // 지형
+    new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false }), // 고리
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.12, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false }), // 대기권
+    new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), // 먼지
+  ]
+  const [terrainMat, ringMat, airMat, dustMat] = warmMats
+  const tiny = warmTiny()
+  temp.add(new THREE.Mesh(built.geo, terrainMat), new THREE.Mesh(built.geo, ringMat), new THREE.Mesh(built.geo, airMat), new THREE.Points(tiny, dustMat))
+  // 행성의 실제 오브젝트는 다른 곳에 붙어 있을 수 있으므로 복제본으로 (지오메트리·재질은 공유)
+  if (built.water) temp.add(built.water.clone())
+  for (const m of built.props) temp.add(m.clone())
+  if (built.clouds) temp.add(built.clouds.clone())
+  gl.compile(temp, camera, target)
+}
+
+function usePlanetBuild(profile: PlanetProfile, detail: number, propBudget: number, cloudBudget: number) {
+  const key = keyOf(profile, detail, propBudget, cloudBudget)
+  const built = useMemo(() => cached(profile, detail, propBudget, cloudBudget), [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const entry = planetCache.get(key)
+    if (!entry || entry.built !== built) return
+    entry.users++
+    clearTimeout(entry.timer)
+    return () => {
+      entry.users--
+      if (entry.users === 0) dropLater(key)
+    }
+  }, [key, built])
+  return built
+}
+
 // ---------------------------------------------------------------- component
 
 type PlanetProps = ThreeElements['group'] & {
@@ -256,6 +362,8 @@ type PlanetProps = ThreeElements['group'] & {
   cloudBudget?: number
   spin?: number
   atmosphere?: boolean
+  /** 대기권 구의 분할 수 — 작게 보이는 태양계 속 행성은 낮게 */
+  atmosphereDetail?: number
 }
 
 export default function Planet({
@@ -265,14 +373,13 @@ export default function Planet({
   cloudBudget = 14,
   spin,
   atmosphere = true,
+  atmosphereDetail = 48,
   ...group
 }: PlanetProps) {
-  const built = useMemo(() => buildPlanet(profile, detail, propBudget, cloudBudget), [profile, detail, propBudget, cloudBudget])
+  const built = usePlanetBuild(profile, detail, propBudget, cloudBudget)
   const spinRef = useRef<THREE.Group>(null)
   const cloudRef = useRef<THREE.Group>(null)
   const speed = spin ?? profile.spin
-
-  useEffect(() => built.dispose, [built])
 
   useFrame((_, dt) => {
     const t = dt * motion.scale
@@ -308,7 +415,7 @@ export default function Planet({
       </group>
       {atmosphere && (
         <mesh scale={1 + profile.amp + 0.07}>
-          <sphereGeometry args={[1, 48, 48]} />
+          <sphereGeometry args={[1, atmosphereDetail, atmosphereDetail]} />
           <meshBasicMaterial
             color={profile.biome.glow}
             transparent

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { seeded } from '../lib/cosmos'
@@ -71,6 +71,9 @@ export function bindLabel(id: string) {
 
 interface AnchorEntry {
   obj: THREE.Object3D
+  /** 지난 프레임에 DOM에 쓴 값 — 같으면 다시 쓰지 않는다 (스타일 재계산 줄이기) */
+  last?: string
+  lastEls?: [HTMLElement | undefined, HTMLElement | undefined]
   offsetY: number
   radius?: number
 }
@@ -107,14 +110,20 @@ export function syncAnchors(camera: THREE.Camera, size: { width: number; height:
     const marker = registry.els.get(id + '|marker')
     if (!el && !marker) return
     a.obj.getWorldPosition(tmpPos).project(camera)
-    const x = ((tmpPos.x + 1) / 2) * size.width
-    const y = ((1 - tmpPos.y) / 2) * size.height
+    // 0.1px 단위로 반올림: 움직이지 않는 동안(공전 멈춤·호버)엔 DOM을 건드리지 않는다
+    const x = Math.round(((tmpPos.x + 1) / 2) * size.width * 10) / 10
+    const y = Math.round(((1 - tmpPos.y) / 2) * size.height * 10) / 10
     const visibility = Math.abs(tmpPos.z) < 1 ? 'visible' : 'hidden'
     let r = 0
     if (a.radius) {
       a.obj.getWorldScale(tmpScale)
       r = Math.max(14, a.radius * tmpScale.x * zoom)
     }
+    const sig = `${x},${y},${Math.round(r)},${visibility}`
+    // 라벨 DOM이 새로 만들어졌으면(장면이 바뀜) 값이 같아도 다시 쓴다
+    if (sig === a.last && a.lastEls?.[0] === el && a.lastEls?.[1] === marker) return
+    a.last = sig
+    a.lastEls = [el, marker]
     if (marker) {
       marker.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
       const d = `${Math.round(r * 2)}px`
@@ -209,4 +218,17 @@ export function Emerge({ source, core = false, children }: { source?: EmergeSour
     opacity(g, st.p)
   })
   return <group ref={ref}>{children}</group>
+}
+
+/**
+ * n프레임 뒤에 true. 새 장면이 무거운 것(행성 여러 개)을 한 프레임에 다 짓지 않고 나눠 짓게 한다.
+ * 새 장면은 비행 처음엔 아주 작게(또는 화면 밖에서) 시작하므로 몇 프레임 늦어도 보이지 않는다.
+ */
+export function useDeferred(frames: number) {
+  const [ready, setReady] = useState(frames <= 0)
+  const count = useRef(0)
+  useFrame(() => {
+    if (!ready && ++count.current >= frames) setReady(true)
+  })
+  return ready
 }

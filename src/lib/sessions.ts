@@ -1,17 +1,10 @@
-import { toSession, type Session } from './parse'
+import data from 'virtual:sessions'
+import type { Session } from './parse'
 
 export type { Session, Topic } from './parse'
 
-const files = import.meta.glob('/content/sessions/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
-
-export const sessions: Session[] = Object.entries(files)
-  .filter(([path]) => !path.split('/').pop()!.startsWith('_'))
-  .map(([path, raw]) => toSession(path, raw))
-  .sort((a, b) => b.date.localeCompare(a.date))
+// 회차 마크다운은 빌드할 때 미리 파싱된다 (vite.config.ts sessionsPlugin) — 최신순
+export const sessions: Session[] = data
 
 export function getSession(slug: string) {
   return sessions.find((s) => s.slug === slug)

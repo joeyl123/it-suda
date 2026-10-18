@@ -23,3 +23,10 @@ export function useSheet() {
     () => sheet,
   )
 }
+
+// 3D가 가려져 보이지 않는 동안(행성 "넓게 읽기") 그리기를 멈춘다 — GPU를 쉬게 한다 (Universe RenderAndSync)
+let covered = false
+export function setCovered(c: boolean) {
+  covered = c
+}
+export const isCovered = () => covered
