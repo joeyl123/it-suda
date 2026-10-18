@@ -118,76 +118,137 @@
 }
 .hint { font-size: 13px; color: var(--ink-faint); margin: 0; }
 
-/* ---------- 내비게이터: 같은 단계의 이웃 사이를 좌우로 (Navigator.tsx) ----------
- * ‹ [위치 · 제목 · 점들] ›  — 점은 형제 전부(항성·생태계 색), 지금 자리는 길게. 툴팁은 위로.
+/* ---------- 내비게이터 (Navigator.tsx, design.md §5) ----------
+ * [‹ 뒤로 · 위치] / 미리보기 줄 / 번호 버튼 / [이전 · 제목][다음 · 제목] 또는 [태양계 탐사 →]
+ * 누르는 것은 모두 44px 이상. 데스크톱 태양계·행성 화면에선 왼쪽 아래에 떠 있고,
+ * 은하 소개 카드와 모바일 시트에선 패널 안 아래쪽(.sheet-footer)에 붙는다.
  */
 .navigator {
   position: fixed; left: 24px; bottom: 24px; z-index: 12;
-  display: flex; align-items: center; gap: 4px;
-  width: min(380px, calc(100vw - 48px));
-  padding: 6px;
+  /* 오른쪽 패널과 겹치지 않는 폭 */
+  width: min(400px, calc(100vw - var(--side-panel, 460px) - 72px));
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px;
   background: var(--panel);
   border: 1px solid var(--rule); border-radius: 16px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   animation: panel-in-up 0.6s 0.5s both;
 }
-.hud-bottom.with-nav { left: calc(24px + min(380px, calc(100vw - 48px)) + 16px); }
-.nav-arrow {
-  position: relative; flex: none;
-  display: grid; place-items: center;
-  width: 40px; height: 40px;
-  color: var(--ink); text-decoration: none;
-  background: var(--paper-3); border-radius: 12px;
+body:has(.panel-reader) { --side-panel: clamp(520px, 44vw, 720px); }
+.navigator :focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.nav-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nav-head:empty { display: none; }
+.nav-back {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+  min-height: 44px; padding: 0 14px 0 8px;
+  font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none;
+  background: var(--paper-3); border-radius: 10px;
   transition: background 0.15s;
 }
-.nav-arrow svg { transition: transform 0.2s; }
-.nav-arrow:hover { background: #2e3036; }
-.nav-arrow.is-prev:hover svg { transform: translateX(-2px); }
-.nav-arrow.is-next:hover svg { transform: translateX(2px); }
-.nav-arrow[aria-disabled='true'] { color: var(--ink-faint); background: none; opacity: 0.45; cursor: default; }
-.nav-body { flex: 1; min-width: 0; padding: 2px 6px; text-align: center; }
-.nav-meta { margin: 0; font-size: 11px; font-weight: 600; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.nav-title { margin: 1px 0 0; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nav-dots { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
-.nav-dot {
+.nav-back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-back svg { flex: none; }
+.nav-back:hover { background: #2e3036; }
+.nav-pos { margin: 0 0 0 auto; font-size: 12px; font-weight: 600; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nav-preview {
+  margin: 0; padding: 0 2px; min-height: 21px;
+  font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nav-preview.is-peek { color: var(--violet); }
+.nav-select {
+  list-style: none; margin: 0; padding: 3px; /* 포커스 테두리가 잘리지 않게 */
+  display: flex; gap: 6px;
+  overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.nav-select::-webkit-scrollbar { display: none; }
+.nav-num {
   position: relative;
-  width: 6px; height: 6px; border-radius: 999px;
-  background: color-mix(in srgb, var(--dot, var(--ink-soft)) 40%, transparent);
-  transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s;
+  display: grid; place-items: center;
+  min-width: 44px; height: 44px; padding: 0 8px;
+  font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--ink-soft); text-decoration: none;
+  background: var(--paper-3); border-radius: 10px;
+  transition: background 0.15s, color 0.15s;
 }
-.nav-dot::before { content: ''; position: absolute; inset: -8px -3px; } /* 누르기 쉬운 크기 */
-.nav-dot:hover { background: var(--dot, var(--ink)); }
-.nav-dot.is-current { width: 18px; background: var(--dot, var(--ink)); }
-/* 툴팁: 화살표·점 위로 */
-.nav-tip, .nav-dot-tip {
-  position: absolute; bottom: calc(100% + 10px); z-index: 1;
-  max-width: 280px; padding: 6px 10px;
-  font-size: 12px; font-weight: 500; line-height: 1.45; text-align: left;
-  color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  background: var(--paper-3); border: 1px solid var(--rule); border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-  opacity: 0; pointer-events: none; transform: translateY(4px);
-  transition: opacity 0.15s, transform 0.15s;
+/* 아래 색 막대: 항성·생태계 색 */
+.nav-num::after {
+  content: ''; position: absolute; left: 50%; bottom: 6px;
+  width: 14px; height: 3px; margin-left: -7px; border-radius: 2px;
+  background: var(--dot, var(--ink-soft));
 }
-.nav-tip small { display: block; font-size: 11px; color: var(--ink-soft); }
-.nav-arrow.is-prev .nav-tip { left: 0; }
-.nav-arrow.is-next .nav-tip { right: 0; }
-.nav-dot-tip { left: 50%; transform: translate(-50%, 4px); }
-.nav-arrow:hover .nav-tip, .nav-arrow:focus-visible .nav-tip { opacity: 1; transform: translateY(0); }
-.nav-dot:hover .nav-dot-tip, .nav-dot:focus-visible .nav-dot-tip { opacity: 1; transform: translate(-50%, 0); }
-/* 넓게 읽는 동안엔 숨긴다 (읽기 화면과 겹치지 않게) */
+.nav-num:hover { color: var(--ink); background: #2e3036; }
+.nav-num[aria-current='page'] { color: var(--paper); background: var(--ink); }
+.nav-num.is-dim { opacity: 0.35; }
+.nav-num.is-dim:hover, .nav-num.is-dim:focus-visible { opacity: 0.7; }
+.nav-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nav-step {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  min-height: 60px; padding: 8px 12px;
+  color: var(--ink); text-decoration: none;
+  background: var(--paper-2); border: 1px solid var(--rule); border-radius: 12px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.nav-step.is-next { align-items: flex-end; text-align: right; }
+.nav-step:hover { background: var(--paper-3); border-color: var(--rule-strong); }
+.nav-step-dir { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+.nav-step-title {
+  max-width: 100%;
+  font-size: 13px; font-weight: 600; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.nav-step.is-end { justify-content: center; background: none; border-style: dashed; }
+.nav-step.is-end .nav-step-dir { color: var(--ink-faint); }
+.nav-action {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 56px; padding: 10px 14px;
+  color: #15111f; text-decoration: none;
+  background: var(--violet); border-radius: 12px;
+  transition: filter 0.15s;
+}
+.nav-action span { min-width: 0; }
+.nav-action strong { display: block; font-size: 15px; font-weight: 700; }
+.nav-action small { display: block; font-size: 12px; font-weight: 500; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-action svg { flex: none; }
+.nav-action:hover { filter: brightness(1.08); }
+.navigator .nav-action:focus-visible { outline-color: var(--ink); }
+/* 넓게 읽는 동안엔 숨긴다 */
 body:has(.panel-reader.is-wide) .navigator { opacity: 0; pointer-events: none; }
+
+/* 패널 안 아래쪽에 붙는 내비게이터 (은하 소개 카드, 모바일 시트) */
+.sheet-footer {
+  /* sticky는 패널 안쪽 여백 끝에서 멈추므로, 여백만큼 내려서 패널 바닥에 딱 붙인다 */
+  position: sticky; bottom: -28px; z-index: 3; /* 접힌 시트의 덮개(.sheet-cover)보다 위 — 접혀 있어도 누를 수 있게 */
+  margin: 20px -28px -28px;
+  padding: 12px 16px;
+  background: rgb(22, 23, 27);
+  border-top: 1px solid var(--rule);
+}
+.panel-reader .sheet-footer { margin: 0; bottom: 0; }
+.sheet-footer .navigator {
+  position: static; width: auto; padding: 0;
+  background: none; border: 0; box-shadow: none; animation: none;
+}
 @media (max-width: 899px) {
-  /* 모바일: 아래 시트 바로 위, 시트를 펼쳐 읽는 동안엔 숨김 */
-  .navigator {
-    left: 12px; right: 12px; width: auto;
-    bottom: calc(30svh + 16px + env(safe-area-inset-bottom));
-    transition: bottom 0.35s, opacity 0.25s;
+  .sheet-footer {
+    margin: 16px -20px -24px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    bottom: -24px;
   }
-  html[data-sheet='open'] .navigator { opacity: 0; pointer-events: none; }
-  html[data-sheet='none'] .navigator { bottom: calc(16px + env(safe-area-inset-bottom)); }
-  .nav-tip, .nav-dot-tip { display: none; }
-  .hud-bottom.with-nav { left: auto; }
+  .panel-reader .sheet-footer { margin: 0; bottom: 0; }
+  /* 두 줄로: [‹ 뒤로][01 02 03 …] / [이전][다음] 또는 [탐사] */
+  .sheet-footer .navigator { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; }
+  .sheet-footer .nav-head { display: contents; }
+  .sheet-footer .nav-pos, .sheet-footer .nav-preview { display: none; }
+  .sheet-footer .nav-back { max-width: 40vw; }
+  .sheet-footer .nav-select { grid-column: 2; }
+  .sheet-footer .navigator:not(:has(.nav-back)) .nav-select { grid-column: 1 / -1; }
+  .sheet-footer .nav-steps, .sheet-footer .nav-action { grid-column: 1 / -1; }
+  .sheet-footer .nav-step { min-height: 52px; padding: 6px 10px; }
+  .sheet-footer .nav-step-title { -webkit-line-clamp: 1; display: block; white-space: nowrap; text-overflow: ellipsis; }
+  .sheet-footer .nav-action { min-height: 52px; }
+  /* 접힌 시트는 내비게이터 높이만큼 더 열어 두고, 아래 흐림은 내비게이터 위에 */
+  .panel.has-footer[data-sheet='peek'] { max-height: calc(26svh + 136px); }
+  .panel.has-footer[data-sheet='peek']::after { bottom: 128px; z-index: 2; }
 }
 @media (prefers-reduced-motion: reduce) { .navigator { animation: none; } }
 

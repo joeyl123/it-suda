@@ -62,8 +62,8 @@ function shiftOf(mode: Mode, w: number, h: number, sheet: SheetState = 'peek') {
     const panel = mode === 'reader' ? Math.min(720, Math.max(520, w * 0.44)) : 460
     return { x: -(panel + 48) / 2, y: 0 }
   }
-  // 모바일: 아래 시트가 가리는 만큼 위로 (접힌 시트 ≈ 30%, 펼친 시트 ≈ 72%)
-  return { x: 0, y: h * (sheet === 'open' ? 0.36 : 0.15) }
+  // 모바일: 아래 시트가 가리는 만큼 위로 (접힌 시트 ≈ 26% + 내비게이터, 펼친 시트 ≈ 72%)
+  return { x: 0, y: h * (sheet === 'open' ? 0.36 : 0.21) }
 }
 
 /** @param onReady 첫 장면이 실제로 그려졌을 때 (로딩 화면을 걷는다) */

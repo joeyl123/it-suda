@@ -1,9 +1,9 @@
-import { useMemo, type CSSProperties } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, type CSSProperties } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import SessionCard from '../components/SessionCard'
 import TagChip from '../components/TagChip'
 import Navigator from '../components/Navigator'
-import { systemNavItems } from '../lib/nav'
+import { rememberGalaxySearch, systemNavItems } from '../lib/nav'
 import Sheet from '../components/Sheet'
 import { allTags, pad2, searchSessions, sessions } from '../lib/sessions'
 import { hasWebGL } from '../lib/webgl'
@@ -14,7 +14,10 @@ const webgl = hasWebGL()
 /** 은하 화면: 3D 은하(뒤 배경 Universe) 위에 소개 카드 하나. 목록 보기는 가운데 패널. */
 export default function HomePage() {
   const [params, setParams] = useSearchParams()
+  const { search } = useLocation()
   useTitle()
+  // 태양계로 들어갔다 돌아올 때 이 검색·태그·보기를 되살린다
+  useEffect(() => rememberGalaxySearch(search), [search])
   const query = params.get('q') ?? ''
   const tag = params.get('tag')
   const view = !webgl || params.get('view') === 'list' ? 'list' : 'galaxy'
@@ -58,9 +61,25 @@ export default function HomePage() {
   )
 
   if (view === 'galaxy') {
+    // 내비게이터: 시간순 번호 + "태양계 탐사" (검색 중이면 걸린 태양계부터, 걸리지 않은 번호는 흐리게)
+    const filtering = Boolean(query || tag)
+    const hits = new Set(results.map((s) => s.slug))
+    const items = systemNavItems.map((it) => ({ ...it, dim: filtering && !hits.has(it.slug) }))
+    const lit = items.filter((it) => !it.dim)
+    const start = lit[0]
+    const navigator = items.length > 0 && (
+      <Navigator
+        kind="태양계"
+        items={items}
+        current={-1}
+        overviewLabel={filtering ? `태양계 ${lit.length} / ${items.length}개 빛나는 중` : `태양계 ${items.length}개 · 시간순`}
+        action={start && { to: start.to, label: filtering ? '찾은 태양계 탐사' : '태양계 탐사 시작', sub: `${start.title}부터` }}
+        keys={{ next: start?.to, prev: lit.at(-1)?.to }}
+      />
+    )
     return (
       <>
-        <Sheet as="section" className="panel panel-left galaxy-hero">
+        <Sheet as="section" className="panel panel-left galaxy-hero" footer={navigator} footerFloat={false}>
           <p className="label">당근 IT 소모임 · 자기계발 &amp; 정보 공유</p>
           <h1>
             IT 수다 <span className="accent">은하</span>
@@ -78,20 +97,7 @@ export default function HomePage() {
             <p className="match-note">{results.length > 0 ? `${results.length}개 태양계가 빛나고 있어요` : '찾는 태양계가 없어요'}</p>
           )}
         </Sheet>
-        {systemNavItems.length > 0 && (
-          <Navigator
-            kind="태양계"
-            items={systemNavItems}
-            current={-1}
-            overview={{
-              meta: `은하 · 태양계 ${systemNavItems.length}개`,
-              title: '좌우로 태양계를 둘러보세요',
-              next: { ...systemNavItems[0], hint: '첫 태양계부터' },
-              prev: { ...systemNavItems[systemNavItems.length - 1], hint: '가장 최근 태양계' },
-            }}
-          />
-        )}
-        <div className="hud-bottom with-nav">
+        <div className="hud-bottom">
           {viewToggle}
           <p className="hint">드래그로 회전 · 스크롤로 확대 · 별을 눌러 입장</p>
         </div>

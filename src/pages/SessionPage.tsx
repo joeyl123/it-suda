@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import TagChip from '../components/TagChip'
 import Navigator from '../components/Navigator'
-import { systemNavItems } from '../lib/nav'
+import { galaxyHref, systemNavItems } from '../lib/nav'
 import Sheet from '../components/Sheet'
 import Prose from '../components/Prose'
 import { planetColors, planetProfile, systemProfile } from '../lib/cosmos'
@@ -28,9 +28,20 @@ export default function SessionPage() {
         {session.topicList.length > 0 && <span className="hint">행성을 눌러 착륙</span>}
       </div>
 
-      <Sheet className="panel panel-right" style={{ '--corona': system.corona } as CSSProperties}>
+      <Sheet
+        className="panel panel-right"
+        style={{ '--corona': system.corona } as CSSProperties}
+        footer={
+          <Navigator
+            kind="태양계"
+            items={systemNavItems}
+            current={systemNavItems.findIndex((it) => it.slug === session.slug)}
+            back={{ to: galaxyHref(), label: '은하로' }}
+          />
+        }
+      >
         <nav className="crumbs">
-          <Link to="/">은하</Link>
+          <Link to={galaxyHref()}>은하</Link>
           <span>/</span>
           <span aria-current="page">No.{no}</span>
         </nav>
@@ -78,7 +89,6 @@ export default function SessionPage() {
         )}
       </Sheet>
 
-      <Navigator kind="태양계" items={systemNavItems} current={systemNavItems.findIndex((it) => it.to === `/sessions/${session.slug}`)} up="/" />
     </>
   )
 }

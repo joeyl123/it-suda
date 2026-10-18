@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Prose from '../components/Prose'
 import Navigator from '../components/Navigator'
+import { galaxyHref } from '../lib/nav'
 import Sheet from '../components/Sheet'
 import { planetColors, planetProfile } from '../lib/cosmos'
 import { formatDate, getSession, pad2 } from '../lib/sessions'
@@ -94,10 +95,27 @@ export default function TopicPage() {
 
       {wide && <div className="reader-dim" onClick={() => toggleWide(false)} aria-hidden="true" />}
 
-      <Sheet className={`panel panel-right panel-reader${wide ? ' is-wide' : ''}${toggled && !wide ? ' no-enter' : ''}`} style={tone} onScroll={onScroll}>
+      <Sheet
+        className={`panel panel-right panel-reader${wide ? ' is-wide' : ''}${toggled && !wide ? ' no-enter' : ''}`}
+        style={tone}
+        onScroll={onScroll}
+        footer={
+          <Navigator
+            kind="행성"
+            items={session.topicList.map((t) => ({
+              to: `/sessions/${session.slug}/${t.index}`,
+              no: pad2(t.index),
+              title: t.title,
+              color: planetProfile(session, t).biome.glow,
+            }))}
+            current={topic.index - 1}
+            back={{ to: `/sessions/${session.slug}`, label: `No.${no} 태양계로` }}
+          />
+        }
+      >
         <div className="reader-bar">
           <nav className="crumbs">
-            <Link to="/">은하</Link>
+            <Link to={galaxyHref()}>은하</Link>
             <span>/</span>
             <Link to={`/sessions/${session.slug}`}>No.{no}</Link>
             <span>/</span>
@@ -160,16 +178,6 @@ export default function TopicPage() {
         </div>
       </Sheet>
 
-      <Navigator
-        kind="행성"
-        items={session.topicList.map((t) => ({
-          to: `/sessions/${session.slug}/${t.index}`,
-          title: t.title,
-          color: planetProfile(session, t).biome.glow,
-        }))}
-        current={topic.index - 1}
-        up={`/sessions/${session.slug}`}
-      />
     </>
   )
 }
